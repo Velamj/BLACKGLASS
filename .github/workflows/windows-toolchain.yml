@@ -1,0 +1,31 @@
+name: Windows and Unreal toolchain
+on:
+  push:
+    branches: [main, blackglass/milestone-1]
+    paths:
+      - '.github/workflows/windows-toolchain.yml'
+      - 'Scripts/Inspect-Environment.ps1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    name: Verify installed Unreal toolchain
+    runs-on: ${{ fromJSON(vars.BLACKGLASS_WINDOWS_RUNNER || '["windows-2022"]') }}
+    timeout-minutes: 10
+    steps:
+      - name: Check out this commit
+        uses: actions/checkout@v4
+      - name: Inspect the actual Windows, compiler, SDK and Unreal installation
+        shell: pwsh
+        env:
+          BLACKGLASS_UE_ROOT: ${{ vars.BLACKGLASS_UE_ROOT }}
+        run: ./Scripts/Inspect-Environment.ps1 -RequireUnreal
+      - name: Retain machine evidence even when Unreal is missing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackglass-toolchain-${{ github.run_id }}
+          path: Artifacts/Toolchain/environment.json
+          if-no-files-found: error
+          retention-days: 14
