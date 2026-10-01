@@ -1,8 +1,18 @@
 # Unreal editor bridge on the development PC
 
-The owner selected their Windows PC to host Unreal. This repository pins **ue-mcp 1.3.9**, the version explicitly requested, as development tooling. Unreal Engine is a separate installation. No editor connection or supported installed engine has been verified yet.
+The owner selected their Windows PC to host Unreal. This repository pins **ue-mcp 1.3.9**, the version explicitly requested, as development tooling. Unreal Engine is a separate installation. The owner confirmed that Unreal is **not installed yet**. No editor connection or supported installed engine has been verified.
 
 Upstream: [v1.3.9 release](https://github.com/db-lyon/ue-mcp/releases/tag/v1.3.9), [installation](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/docs/getting-started.md), [client configuration](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/docs/configuration.md), [MIT license](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/LICENSE).
+
+## Install Unreal on the owner's Windows PC
+
+1. Download the [Epic Games Launcher from the official Unreal page](https://www.unrealengine.com/en-US/download), install it and sign in.
+2. Open Unreal Engine → Library, add an engine installation and choose an available stable UE 5 release within the bridge vendor's advertised 5.4–5.8 range. Record the actual version and installation folder; do not choose a preview merely to match an example.
+3. Install the C++ game development tools and Windows SDK required by that engine. Follow [Epic's Visual Studio setup documentation](https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-visual-studio-development-environment-for-cplusplus-projects-in-unreal-engine) for the selected version.
+4. Install [Node.js](https://nodejs.org/) 20+ for the editor bridge. CI verified the bridge with Node 22.23.3 on Windows.
+5. Connect an authorized PC terminal integration, or continue in Codex on that PC, so development can inspect files, build native code and run the editor.
+
+This chat currently has GitHub access, but no working terminal/editor connection to that PC. The launcher installation, sign-in and installed engine have not been performed through this session.
 
 ## Inspect before creating the game project
 
@@ -64,5 +74,7 @@ The no-project mode can connect to any bridge answering legacy port 9877. Use th
 .github/workflows/ue-mcp-validation.yml installs the pinned published npm package on an isolated GitHub Windows VM, starts its real process, performs MCP initialization/tool discovery and calls project(get_status). The probe refuses to run if legacy port 9877 is already active.
 
 Artifacts/UnrealBridge/mcp-probe.json records the actual server version, advertised tool names and disconnected status. The artifact also retains the generated package-lock.json for the dependencies resolved during that run; only ue-mcp's direct version is currently committed as a pin.
+
+[Windows run 36922455754](https://github.com/Velamj/BLACKGLASS/actions/runs/36922455754), source a19b4317748d07aee061bd79dacfaa1a220bc209, passed all four checks on 2026-10-01: pinned version, real MCP initialization, tool discovery (27 advertised tools) and truthful disconnected status. Artifact unreal-mcp-windows-probe (11192232303) contains the report and resolved dependency lock. The pull request check passed as well.
 
 This check does not compile the C++ Unreal plugin, connect an editor, create a game, measure frame rate or validate Windows game packaging. Those require the owner's installed engine and ordinary-controls playtests. The separate core and engine checks remain authoritative for their own scope.

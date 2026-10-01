@@ -39,6 +39,10 @@ pwsh -File Scripts/Inspect-Environment.ps1 -RequireUnreal
 
 The root must contain Engine/Build/Build.version, Engine/Build/BatchFiles/Build.bat, Engine/Build/BatchFiles/RunUAT.bat and an actual Windows editor executable. The script reads Build.version before an engine version or version-specific integration is selected. Reports are written to Artifacts/Toolchain/environment.json.
 
+## Local Windows editor bridge
+
+The owner selected their Windows PC, which does not have Unreal installed yet. [UNREAL_MCP.md](UNREAL_MCP.md) gives official installation links, the pinned ue-mcp 1.3.9 setup, local Codex configuration and exact connection checks. A verified MCP server process is separate from a compiled Unreal bridge and connected editor.
+
 ## GitHub Unreal prerequisite
 Current GitHub-hosted Windows probes found zero Unreal installations. Register an owner-controlled Windows Actions runner that already has legitimately installed Unreal, its matching C++ toolchain and Windows SDK. Then configure these repository Actions variables:
 

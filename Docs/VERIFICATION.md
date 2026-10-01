@@ -38,6 +38,22 @@ The probe searched the configured root (if any), Epic's standard program directo
 
 This VM is a compiler/test machine, not the documented midrange graphics test system required by the brief. No resolution, quality setting, actor-count performance result, GPU frame time, CPU profiler trace or 60 FPS claim exists.
 
+## Published Unreal MCP tooling
+
+Tooling source commit: [a19b4317748d07aee061bd79dacfaa1a220bc209](https://github.com/Velamj/BLACKGLASS/commit/a19b4317748d07aee061bd79dacfaa1a220bc209).
+
+[Windows MCP workflow run 36922455754](https://github.com/Velamj/BLACKGLASS/actions/runs/36922455754), job 110571567780, passed on 2026-10-01:
+- Node.js 22.23.3, win32; published ue-mcp package 1.3.9.
+- Real stdin/stdout MCP initialize response: server ue-mcp 1.3.9, protocol 2024-11-05.
+- Real tools/list response: 27 advertised tools, including project.
+- Real project(get_status) response: mode disconnected, editorConnected false, project null, editorTarget.projectPath null, legacy port 9877.
+- Four checks passed. The separate pull request run 36922462870 also passed.
+- Artifact unreal-mcp-windows-probe (11192232303) retained the actual report and generated package-lock.json for 14 days.
+
+This proves that the pinned published Node server installs and speaks MCP on Windows. It does not prove the C++ bridge compiles, that any advertised editor operation works, or that Unreal is connected. No upstream demo or flow was executed.
+
+The owner selected their Windows PC and confirmed Unreal is not installed there yet. Engine installation and a connected PC session are required; the repository does not install software onto that PC.
+
 ## Game acceptance status
 All twelve user acceptance tests remain pending in the running game. Partial core coverage must not be marked as in-game acceptance.
 
@@ -60,4 +76,4 @@ All twelve user acceptance tests remain pending in the running game. Partial cor
 Source/data/test paths and reproducible commands are in BUILD.md. No .uproject, .umap or packaged game exists. No game launch or player control mapping exists. No running-game screenshots have been captured; no generated images or source inspection are substituted.
 
 ## Next action
-Supply an Unreal-equipped Windows Actions runner and actual engine root as documented in BUILD.md, then rerun the environment probe. With that verified installation, create the engine project and implement/test the actual Milestone 1 urban operation.
+Install Unreal on the owner's Windows PC and connect its terminal/editor session as documented in UNREAL_MCP.md, then run the environment probe. An Unreal-equipped self-hosted Windows Actions runner remains an alternative documented in BUILD.md. With that verified installation, create the engine project and implement/test the actual Milestone 1 urban operation.

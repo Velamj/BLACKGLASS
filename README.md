@@ -23,7 +23,7 @@ ctest --test-dir out -C Debug --output-on-failure --verbose
 There is no game launch command or player control mapping yet. [Build instructions](Docs/BUILD.md) give current file/output paths and the Windows runner/engine configuration required to implement the actual game.
 
 ## Unreal editor setup
-The development host is the owner's Windows PC. [Pinned ue-mcp 1.3.9 setup](Docs/UNREAL_MCP.md) documents prerequisites, local Codex configuration and connection verification. The engine folder and PC connection remain pending; no Unreal version has been assumed.
+The development host is the owner's Windows PC. [Pinned ue-mcp 1.3.9 setup](Docs/UNREAL_MCP.md) documents prerequisites, local Codex configuration and connection verification. The owner confirmed Unreal is not installed yet. [The real Windows MCP server check passed](https://github.com/Velamj/BLACKGLASS/actions/runs/36922455754); engine installation and PC access remain pending.
 
 ## Scope and evidence
 - [Full seven-part master brief](Docs/MASTER_BRIEF.md).

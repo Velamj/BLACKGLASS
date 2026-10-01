@@ -9,13 +9,14 @@ PROJECT BLACKGLASS remains an original real-time isometric offline Windows PC ga
 - Added original portable C++ state for four-operative orders/movement, collision-aware weapons, eight inventory slots/weight/transfer, local civilian/security reactions, vehicle driver/seats/damage/exits, specialist escort/objective/outcomes and versioned persistent state.
 - Added editable weapon CSV, reproducible CMake builds and Windows/Linux CI.
 - All 24 core integration contracts pass on actual MSVC and GNU builds. See VERIFICATION.md.
+- Pinned ue-mcp 1.3.9 and passed its real stdio initialization/tool discovery/disconnected-status probe on Windows Node 22.23.3. No editor connection was established; see UNREAL_MCP.md.
 - Preserved all seven instruction parts in MASTER_BRIEF.md, including the later campaign/vertical-slice requirements.
 - Recorded incomplete systems in FIDELITY_LEDGER.md and the absence of art/audio/maps in ASSET_MANIFEST.md.
 
 ## Blocker
 The actual GitHub Windows runner has C++ tools and SDKs but zero discovered Unreal installations. Engine-specific integration, camera/rendering, gameplay input, authored map, animations, physical gameplay, screenshots and packaged-game testing cannot run there. Engine version has not been assumed.
 
-The owner selected their Windows PC and ue-mcp v1.3.9. The installed engine path and an operational PC/editor connection are still pending. The pinned Node tooling and a Windows MCP process probe are now provided; see UNREAL_MCP.md. A self-hosted Windows runner remains an alternative, configured using BLACKGLASS_WINDOWS_RUNNER and BLACKGLASS_UE_ROOT as described in BUILD.md. Inspect the exact version/toolchain before creating engine-specific files.
+The owner selected their Windows PC and ue-mcp v1.3.9. The owner confirmed that Unreal is not installed yet. Installing the engine and connecting a PC terminal/editor session are the current dependencies. The pinned Node tooling and a Windows MCP process probe are now provided; see UNREAL_MCP.md. A self-hosted Windows runner remains an alternative, configured using BLACKGLASS_WINDOWS_RUNNER and BLACKGLASS_UE_ROOT as described in BUILD.md. Inspect the exact version/toolchain before creating engine-specific files.
 
 ## Known limitations
 - This is a standalone state prototype; it is not an Unreal module or playable substitute.
