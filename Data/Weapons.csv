@@ -1,0 +1,3 @@
+id,range,damage,interval,sound_radius,weight
+compact_sidearm,12,18,0.55,16,2
+compact_automatic,20,9,0.12,25,5

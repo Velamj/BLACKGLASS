@@ -5,6 +5,10 @@ on:
     paths:
       - '.github/workflows/windows-toolchain.yml'
       - 'Scripts/Inspect-Environment.ps1'
+      - 'Source/BlackglassCore/**'
+      - 'Tests/**'
+      - 'Data/**'
+      - 'CMakeLists.txt'
   workflow_dispatch:
 permissions:
   contents: read
