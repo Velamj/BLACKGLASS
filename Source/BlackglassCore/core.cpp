@@ -492,8 +492,8 @@ void World::update_actor(Actor& a, double dt) {
         bool completed = true;
         if (order.kind == OrderKind::drive) {
             const auto* v = vehicle(a.vehicle);
-            if (v->route.empty() && distance(v->position, order.destination) > 0.05) result = drive(a.id, order.destination);
-            completed = !result.ok || (v->route.empty() && distance(v->position, order.destination) <= 0.05);
+            if (v->route.empty() && distance(v->position, order.destination) > epsilon) result = drive(a.id, order.destination);
+            completed = !result.ok || (v->route.empty() && distance(v->position, order.destination) <= epsilon);
         } else if (order.kind == OrderKind::disembark) result = disembark(a.id);
         else if (order.kind == OrderKind::extract) result = extract();
         else result = Result::failure("This order requires disembarking first.");
@@ -553,8 +553,8 @@ void World::update_actor(Actor& a, double dt) {
         bool completed = true;
         switch (order.kind) {
         case OrderKind::move:
-            if (a.route.empty() && distance(a.position, order.destination) > 0.05) result = begin_move(a, order.destination);
-            completed = !result.ok || (a.route.empty() && distance(a.position, order.destination) <= 0.05);
+            if (a.route.empty() && distance(a.position, order.destination) > epsilon) result = begin_move(a, order.destination);
+            completed = !result.ok || (a.route.empty() && distance(a.position, order.destination) <= epsilon);
             break;
         case OrderKind::attack: {
             const auto* target = actor(order.target);
