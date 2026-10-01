@@ -193,6 +193,7 @@ Result World::issue(const std::vector<EntityId>& ids, Order order, bool queued) 
             return Result::failure("Invalid, duplicate or dead operative.");
         if (queued && a->orders.size() >= 256) return Result::failure("Order queue is full.");
         Order next = order;
+        if (order.kind == OrderKind::drive) next.destination = Grid::center(Grid::cell_at(order.destination));
         if (order.kind == OrderKind::move) {
             if (a->vehicle) return Result::failure("Use a vehicle drive order while boarded.");
             const Cell goal = Grid::cell_at(order.destination);
@@ -380,6 +381,7 @@ Result World::drive(EntityId id, Vec2 destination) {
     const auto route = grid_.path(Grid::cell_at(v->position), Grid::cell_at(destination));
     if (route.empty()) return Result::failure("Vehicle destination is unreachable.");
     v->route.assign(route.begin() + 1, route.end());
+    if (route.size() == 1 && distance(v->position, Grid::center(route.back())) > epsilon) v->route.push_back(route.back());
     return Result::success();
 }
 Result World::damage_vehicle(EntityId id, double amount) {
@@ -462,6 +464,7 @@ Result World::begin_move(Actor& a, Vec2 destination) {
     const auto path = grid_.path(Grid::cell_at(a.position), Grid::cell_at(destination));
     if (path.empty()) return Result::failure("Navigation route is unavailable.");
     a.route.assign(path.begin() + 1, path.end());
+    if (path.size() == 1 && distance(a.position, Grid::center(path.back())) > epsilon) a.route.push_back(path.back());
     return Result::success();
 }
 void World::update_vehicle(Vehicle& v, double dt) {

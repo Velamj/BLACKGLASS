@@ -27,7 +27,10 @@ World restored(const World& world) {
     World loaded(Grid(1,1)); std::istringstream input(snapshot(world));
     OK(loaded.read_snapshot(input)); return loaded;
 }
-void close(Vec2 a, Vec2 b) { CHECK(distance(a,b) < 1e-6); }
+void close(Vec2 a, Vec2 b) {
+    if (distance(a,b) >= 1e-6) throw std::runtime_error("Position " + std::to_string(a.x) + "," + std::to_string(a.y) +
+        " differs from expected " + std::to_string(b.x) + "," + std::to_string(b.y));
+}
 void select_and_group_move() {
     auto world = fixture();
     std::vector<EntityId> ids;
@@ -312,9 +315,22 @@ void controller_death_clears_acquisition() {
     CHECK(world.actor(s)->follower_of == no_entity && !world.mission().acquired);
     CHECK(world.mission().state == MissionState::active); CHECK(!world.extract().ok);
 }
+void same_cell_orders_finish_after_displacement() {
+    auto world = fixture();
+    const auto a = world.add_actor(Kind::operative,{1.7,1.5});
+    OK(world.issue({a},{OrderKind::move,{1.5,1.5},0}));
+    world.advance(0.3); close(world.actor(a)->position,{1.5,1.5});
+    CHECK(world.actor(a)->orders.empty());
+    const auto driver = world.add_actor(Kind::operative,{4.7,5.5});
+    const auto car = world.add_vehicle({5.7,5.5}); OK(world.board(driver,car));
+    OK(world.issue({driver},{OrderKind::drive,{5.2,5.5},0}));
+    world.advance(0.3); close(world.vehicle(car)->position,{5.5,5.5});
+    CHECK(world.actor(driver)->orders.empty());
+}
 int main() {
     const std::vector<std::pair<std::string,std::function<void()>>> tests{
         {"four-operative selection and formation movement",select_and_group_move},
+        {"same-cell orders finish after displacement",same_cell_orders_finish_after_displacement},
         {"individual queues and stop",individual_queue_and_stop},
         {"doorway changes navigation",doorway_changes_navigation},
         {"narrow route and traffic yield",narrow_route_and_traffic_yield},
