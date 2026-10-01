@@ -1,0 +1,18 @@
+{
+  "name": "blackglass-editor-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pinned Unreal editor tooling for PROJECT BLACKGLASS; the native game remains C++.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "mcp:verify": "node Scripts/Verify-UnrealMcp.mjs",
+    "mcp:init": "ue-mcp init",
+    "mcp:doctor": "ue-mcp doctor",
+    "mcp:build": "ue-mcp build"
+  },
+  "devDependencies": {
+    "ue-mcp": "1.3.9"
+  }
+}

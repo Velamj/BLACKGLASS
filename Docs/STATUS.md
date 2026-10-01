@@ -2,7 +2,7 @@
 
 PROJECT BLACKGLASS remains an original real-time isometric offline Windows PC game project. The working title is not a cleared commercial brand.
 
-**Milestone 1 is not complete. There is no playable game, Unreal project file, map or packaged executable yet.** Work stops at the verified Unreal dependency blocker.
+**Milestone 1 is not complete. There is no playable game, Unreal project file, map or packaged executable yet.** Engine integration remains blocked on verified access to the owner's Windows development PC.
 
 ## Completed repository work
 - Preserved the initial main commit/README and developed on blackglass/milestone-1.
@@ -15,7 +15,7 @@ PROJECT BLACKGLASS remains an original real-time isometric offline Windows PC ga
 ## Blocker
 The actual GitHub Windows runner has C++ tools and SDKs but zero discovered Unreal installations. Engine-specific integration, camera/rendering, gameplay input, authored map, animations, physical gameplay, screenshots and packaged-game testing cannot run there. Engine version has not been assumed.
 
-Required next dependency: an accessible Windows runner with actual Unreal Engine installed. Set BLACKGLASS_WINDOWS_RUNNER and BLACKGLASS_UE_ROOT as described in BUILD.md, then inspect its exact version/toolchain.
+The owner selected their Windows PC and ue-mcp v1.3.9. The installed engine path and an operational PC/editor connection are still pending. The pinned Node tooling and a Windows MCP process probe are now provided; see UNREAL_MCP.md. A self-hosted Windows runner remains an alternative, configured using BLACKGLASS_WINDOWS_RUNNER and BLACKGLASS_UE_ROOT as described in BUILD.md. Inspect the exact version/toolchain before creating engine-specific files.
 
 ## Known limitations
 - This is a standalone state prototype; it is not an Unreal module or playable substitute.
