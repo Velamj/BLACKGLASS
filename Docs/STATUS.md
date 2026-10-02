@@ -2,21 +2,25 @@
 
 PROJECT BLACKGLASS remains an original real-time isometric offline Windows PC game project. The working title is not a cleared commercial brand.
 
-**Milestone 1 is not complete. There is no playable game, Unreal project file, map or packaged executable yet.** Engine integration remains blocked on verified access to the owner's Windows development PC.
+**Milestone 1 is not complete. There is no playable game, Unreal project file, map or packaged executable yet.** Engine integration remains blocked on completing the actual editor/toolchain installation.
 
 ## Completed repository work
 - Preserved the initial main commit/README and developed on blackglass/milestone-1.
 - Added original portable C++ state for four-operative orders/movement, collision-aware weapons, eight inventory slots/weight/transfer, local civilian/security reactions, vehicle driver/seats/damage/exits, specialist escort/objective/outcomes and versioned persistent state.
 - Added editable weapon CSV, reproducible CMake builds and Windows/Linux CI.
-- All 24 core integration contracts pass on actual MSVC and GNU builds. See VERIFICATION.md.
+- All 24 core integration contracts pass on actual MSVC and GNU builds. A further local run of the same core contracts also passed 24/24. See VERIFICATION.md.
 - Pinned ue-mcp 1.3.9 and passed its real stdio initialization/tool discovery/disconnected-status probe on Windows Node 22.23.3. No editor connection was established; see UNREAL_MCP.md.
 - Preserved all seven instruction parts in MASTER_BRIEF.md, including the later campaign/vertical-slice requirements.
 - Recorded incomplete systems in FIDELITY_LEDGER.md and the absence of art/audio/maps in ASSET_MANIFEST.md.
 
-## Blocker
-The actual GitHub Windows runner has C++ tools and SDKs but zero discovered Unreal installations. Engine-specific integration, camera/rendering, gameplay input, authored map, animations, physical gameplay, screenshots and packaged-game testing cannot run there. Engine version has not been assumed.
+## Current installation blocker
+Computer access was demonstrated and the public source was checked out locally. The core compiled and all 24 contracts passed without source changes. Detailed machine and filesystem evidence remains local and is not published here.
 
-The owner selected their Windows PC and ue-mcp v1.3.9. The owner confirmed that Unreal is not installed yet. Installing the engine and connecting a PC terminal/editor session are the current dependencies. The pinned Node tooling and a Windows MCP process probe are now provided; see UNREAL_MCP.md. A self-hosted Windows runner remains an alternative, configured using BLACKGLASS_WINDOWS_RUNNER and BLACKGLASS_UE_ROOT as described in BUILD.md. Inspect the exact version/toolchain before creating engine-specific files.
+The owner has started the Unreal installation and reports insufficient space. The exact required/available amounts and install options need verification before deciding on a smaller installation or alternate storage. The current remote connection has become unresponsive, so installer inspection is temporarily blocked. No cleanup or personal-file removal has been performed.
+
+The reported Game Developer and Build 3D Game Rooms plugins have not exposed identifiable game-development capabilities in this session. Exact plugin references have been requested. No unverified export capability, asset rights or paid service is assumed.
+
+A verified engine and matching C++ toolchain are still required before engine-specific integration. The Windows game target requires an actual Unreal-equipped Windows build machine for packaging/testing; the hosted prerequisite check remains documented in BUILD.md.
 
 ## Known limitations
 - This is a standalone state prototype; it is not an Unreal module or playable substitute.

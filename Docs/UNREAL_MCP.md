@@ -1,6 +1,6 @@
 # Unreal editor bridge on the development PC
 
-The owner selected their Windows PC to host Unreal. This repository pins **ue-mcp 1.3.9**, the version explicitly requested, as development tooling. Unreal Engine is a separate installation. The owner confirmed that Unreal is **not installed yet**. No editor connection or supported installed engine has been verified.
+Windows remains the game target. This repository pins **ue-mcp 1.3.9**, the version explicitly requested, as development tooling. Unreal Engine is a separate installation. The owner has started the Unreal installation; successful completion and an actual editor/toolchain remain unverified.
 
 Upstream: [v1.3.9 release](https://github.com/db-lyon/ue-mcp/releases/tag/v1.3.9), [installation](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/docs/getting-started.md), [client configuration](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/docs/configuration.md), [MIT license](https://github.com/db-lyon/ue-mcp/blob/v1.3.9/LICENSE).
 
@@ -12,7 +12,7 @@ Upstream: [v1.3.9 release](https://github.com/db-lyon/ue-mcp/releases/tag/v1.3.9
 4. Install [Node.js](https://nodejs.org/) 20+ for the editor bridge. CI verified the bridge with Node 22.23.3 on Windows.
 5. Connect an authorized PC terminal integration, or continue in Codex on that PC, so development can inspect files, build native code and run the editor.
 
-This chat currently has GitHub access, but no working terminal/editor connection to that PC. The launcher installation, sign-in and installed engine have not been performed through this session.
+A remote computer connection was demonstrated and local source checks passed. The engine installation currently faces a reported storage blocker; its actual requirements and successful completion remain unverified.
 
 ## Inspect before creating the game project
 
@@ -68,6 +68,18 @@ Restart the client after configuring it. A connected local Codex session can con
 Call project(action="get_status") and record the actual response. Connection is accepted only when editorConnected is true, editorTarget.projectPath matches BLACKGLASS, and the deployedPlugin/bridgeProtocol report is consistent with the compiled release. A running npm process alone does not establish editor access.
 
 The no-project mode can connect to any bridge answering legacy port 9877. Use the explicit BLACKGLASS project argument for actual development. The optional upstream HTTP endpoint serves flows, not a general remote MCP endpoint.
+
+## Remote Desktop Commander setup reference
+
+The [upstream Remote Device guide](https://github.com/wonderwhy-er/DesktopCommanderMCP/blob/main/src/remote-device/README.md) describes the local connection process:
+
+~~~sh
+npx @wonderwhy-er/desktop-commander@latest remote
+~~~
+
+Complete the browser authorization, keep the process running, and follow the AI-client connection instructions at [mcp.desktopcommander.app](https://mcp.desktopcommander.app). Installing the ChatGPT plugin alone does not start that local process.
+
+On macOS, UI automation and screen capture may require OS permissions for the application hosting the process. Verify the responsible application before changing permissions. These are generic setup instructions; detailed private machine state is not published.
 
 ## What CI proves
 

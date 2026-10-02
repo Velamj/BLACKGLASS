@@ -1,4 +1,4 @@
-# Verification evidence — 2026-10-01
+# Verification evidence — updated 2026-10-02
 
 **Milestone 1 is incomplete. No game playtest has run.**
 
@@ -53,6 +53,14 @@ Tooling source commit: [a19b4317748d07aee061bd79dacfaa1a220bc209](https://github
 This proves that the pinned published Node server installs and speaks MCP on Windows. It does not prove the C++ bridge compiles, that any advertised editor operation works, or that Unreal is connected. No upstream demo or flow was executed.
 
 The owner selected their Windows PC and confirmed Unreal is not installed there yet. Engine installation and a connected PC session are required; the repository does not install software onto that PC.
+
+## Additional local core check
+
+The public source at commit 27b8cfbd0ce62f81cd71bfe5c6e19903d382b057 was checked out and compiled locally using the existing C++17 requirements with warnings as errors. All **24/24** portable core contracts passed, compilation/test exits were 0, and the working tree remained clean. There were no game-source edits.
+
+Detailed machine, filesystem and local diagnostic reports are retained locally rather than uploaded to this public repository. This additional check verifies existing state only; it does not establish Unreal gameplay or Windows game packaging.
+
+The owner started installing Unreal and reports a storage blocker. Exact install requirements remain pending, and the remote connection is currently unresponsive. No installer alteration, cleanup or personal-file removal has been performed.
 
 ## Game acceptance status
 All twelve user acceptance tests remain pending in the running game. Partial core coverage must not be marked as in-game acceptance.
