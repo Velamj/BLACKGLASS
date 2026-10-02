@@ -1,0 +1,41 @@
+name: Core C++ contracts
+on:
+  push:
+    branches: [main, blackglass/milestone-1]
+    paths:
+      - '.github/workflows/core-tests.yml'
+      - 'CMakeLists.txt'
+      - 'Source/BlackglassCore/**'
+      - 'Tests/**'
+      - 'Data/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    name: Core contracts on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Check out this commit
+        uses: actions/checkout@v4
+      - name: Configure the simulation tests
+        run: cmake -S . -B out -DCMAKE_BUILD_TYPE=Debug
+      - name: Compile the C++ simulation
+        run: cmake --build out --config Debug --parallel 2
+      - name: Prepare the report directory
+        run: cmake -E make_directory Artifacts/Core
+      - name: Run integration contracts with full output
+        run: ctest --test-dir out -C Debug --output-on-failure --verbose --output-junit ../Artifacts/Core/contracts.xml
+      - name: Retain the test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackglass-core-${{ matrix.os }}-${{ github.run_id }}
+          path: Artifacts/Core/
+          if-no-files-found: warn
+          retention-days: 14
