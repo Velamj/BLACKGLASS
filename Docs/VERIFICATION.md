@@ -84,4 +84,4 @@ All twelve user acceptance tests remain pending in the running game. Partial cor
 Source/data/test paths and reproducible commands are in BUILD.md. No .uproject, .umap or packaged game exists. No game launch or player control mapping exists. No running-game screenshots have been captured; no generated images or source inspection are substituted.
 
 ## Next action
-Install Unreal on the owner's Windows PC and connect its terminal/editor session as documented in UNREAL_MCP.md, then run the environment probe. An Unreal-equipped self-hosted Windows Actions runner remains an alternative documented in BUILD.md. With that verified installation, create the engine project and implement/test the actual Milestone 1 urban operation.
+Resolve the reported engine storage requirement and restore a responsive development-computer connection, then verify the actual installed editor and required C++ toolchain as documented in UNREAL_MCP.md. An Unreal-equipped Windows machine remains necessary for Windows packaging, as documented in BUILD.md. With that verified installation, create the engine project and implement/test the actual Milestone 1 urban operation.
