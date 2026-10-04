@@ -1,0 +1,43 @@
+name: Unreal MCP package validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, blackglass/milestone-1]
+    paths:
+      - package.json
+      - package-lock.json
+      - Scripts/Verify-UnrealMcp.mjs
+      - .github/workflows/ue-mcp-validation.yml
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - Scripts/Verify-UnrealMcp.mjs
+      - .github/workflows/ue-mcp-validation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  published-server:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned editor tooling
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify actual MCP process without an editor
+        run: npm run mcp:verify
+      - name: Retain protocol evidence and resolved dependencies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unreal-mcp-windows-probe
+          path: |
+            Artifacts/UnrealBridge/mcp-probe.json
+            package-lock.json
+          retention-days: 14

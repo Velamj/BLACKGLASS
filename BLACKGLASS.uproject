@@ -1,0 +1,31 @@
+{
+    "FileVersion":  3,
+    "EngineAssociation":  "5.8",
+    "Category":  "Games",
+    "Description":  "Original real-time isometric corporate tactics foundation.",
+    "Modules":  [
+                    {
+                        "Name":  "Blackglass",
+                        "Type":  "Runtime",
+                        "LoadingPhase":  "Default"
+                    }
+                ],
+    "Plugins":  [
+                    {
+                        "Name":  "PythonScriptPlugin",
+                        "Enabled":  true
+                    },
+                    {
+                        "Name":  "EditorScriptingUtilities",
+                        "Enabled":  true
+                    },
+                    {
+                        "Name":  "UE_MCP_Bridge",
+                        "Enabled":  true
+                    },
+                    {
+                        "Name":  "AndroidFileServer",
+                        "Enabled":  false
+                    }
+                ]
+}

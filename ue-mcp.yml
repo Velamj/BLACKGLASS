@@ -1,0 +1,13 @@
+ue-mcp:
+  version: 1
+  contentRoots:
+    - /Game/
+  disable:
+    - feedback
+  nativeTools:
+    enabled: true
+  context:
+    strategy: full
+
+tasks: {}
+flows: {}
