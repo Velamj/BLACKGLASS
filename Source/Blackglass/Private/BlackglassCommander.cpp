@@ -2,6 +2,8 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
@@ -13,7 +15,7 @@
 namespace {
 struct FCameraPresentation {
  FVector Velocity = FVector::ZeroVector;
- float Width = 4200;
+ float Width = 3300;
  float Yaw = -45;
 };
 TMap<TWeakObjectPtr<ABGCamera>, FCameraPresentation> CameraPresentation;
@@ -47,12 +49,12 @@ FHUDLayout Layout(const APlayerController* Controller) {
  FHUDLayout L;
  L.Scale = FMath::Clamp(FMath::Min(Width / 1920.f, Height / 1080.f), .45f, 1.75f);
  const float S = L.Scale;
- L.Briefing = {20*S, 18*S, 790*S, 172*S};
- L.Notice = {20*S, 204*S, 790*S, 44*S};
- L.Controls = {20*S, Height - 214*S, 1080*S, 52*S};
- L.Map = {Width - 280*S, Height - 300*S, 260*S, 280*S};
+ L.Briefing = {18*S, 16*S, 660*S, 140*S};
+ L.Notice = {18*S, 168*S, 660*S, 38*S};
+ L.Controls = {18*S, Height - 190*S, 1000*S, 48*S};
+ L.Map = {Width - 266*S, Height - 256*S, 248*S, 238*S};
  for (int32 Index = 0; Index < 4; ++Index)
-  L.Panels.Add({20*S + Index*246*S, Height - 148*S, 232*S, 128*S});
+  L.Panels.Add({18*S + Index*238*S, Height - 124*S, 224*S, 106*S});
  return L;
 }
 bool OverHUD(const FHUDLayout& L, const FVector2D& P) {
@@ -97,14 +99,19 @@ ABGCamera::ABGCamera() {
  Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("IsometricCamera"));
  Camera->SetupAttachment(RootComponent);
  Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
- Camera->OrthoWidth = 4200;
+ Camera->OrthoWidth = 3300;
  Camera->bConstrainAspectRatio = false;
  Camera->bAutoCalculateOrthoPlanes = true;
  Camera->bUpdateOrthoPlanes = true;
  Camera->bUseCameraHeightAsViewTarget = true;
- const FRotator View(-55, -45, 0);
+ const FRotator View(-35.26439f, -45, 0);
  Camera->SetRelativeRotation(View);
  Camera->SetRelativeLocation(-View.Vector()*5500);
+ if (UMaterialInterface* Outline = LoadObject<UMaterialInterface>(nullptr,
+     TEXT("/Game/Materials/M_BGOperativeOutline.M_BGOperativeOutline"))) {
+  Camera->PostProcessSettings.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, Outline));
+  Camera->PostProcessBlendWeight = 1.f;
+ }
  SetActorEnableCollision(false);
 }
 void ABGCamera::Zoom(float Steps) {
@@ -178,6 +185,14 @@ void ABGCommander::SetupInputComponent() {
 void ABGCommander::PlayerTick(float DeltaSeconds) {
  Super::PlayerTick(DeltaSeconds);
  Selected.RemoveAll([](const TObjectPtr<ABGUnit>& Unit) { return !IsValid(Unit) || !Unit->Alive(); });
+ // Only player-owned living bodies enter the visibility pass. NPC detection stays authoritative.
+ if (ABGOperation* Op = Operation()) for (ABGUnit* Unit : Op->Units) if (IsValid(Unit)) {
+  const bool Owned = Unit->UnitRole == EBGRole::Operative && Unit->Alive() && !Unit->IsSeated();
+  for (UStaticMeshComponent* Part : Unit->Parts) if (IsValid(Part)) {
+   Part->SetRenderCustomDepth(Owned && Part != Unit->SelectionRing && Part->IsVisible());
+   if (Owned) Part->SetCustomDepthStencilValue(Selected.Contains(Unit) ? 2 : 1);
+  }
+ }
  ABGCamera* Rig = Cast<ABGCamera>(GetPawn());
  if (!Rig || !Rig->Camera) return;
  const float Dt = FMath::Clamp(DeltaSeconds > 0 ? DeltaSeconds : FApp::GetDeltaTime(), 0.f, .1f);
@@ -214,7 +229,7 @@ void ABGCommander::PlayerTick(float DeltaSeconds) {
  Position.Y = FMath::Clamp(Position.Y, MapMinY-1200, MapMaxY+1200);
  Rig->SetActorLocation(Position);
  Rig->Camera->OrthoWidth = FMath::FInterpTo(Rig->Camera->OrthoWidth, State.Width, Dt, 10);
- const FRotator View = FMath::RInterpTo(Rig->Camera->GetRelativeRotation(), FRotator(-55, State.Yaw, 0), Dt, 10);
+ const FRotator View = FMath::RInterpTo(Rig->Camera->GetRelativeRotation(), FRotator(-35.26439f, State.Yaw, 0), Dt, 10);
  Rig->Camera->SetRelativeRotation(View);
  Rig->Camera->SetRelativeLocation(-View.Vector()*5500);
 }
@@ -251,9 +266,15 @@ void ABGCommander::LeftUp() {
    float Closest = 30*Layout(this).Scale;
    for (ABGUnit* Candidate : Squad(Operation())) {
     if (!Candidate->Alive() || Candidate->IsSeated()) continue;
-    FVector2D Screen;
-    if (!ProjectWorldLocationToScreen(Candidate->EffectiveLocation()+FVector(0,0,85), Screen)) continue;
-    const float Distance = FVector2D::Distance(Screen, DragEnd);
+    FVector2D Head, Feet;
+    const FVector Location = Candidate->EffectiveLocation();
+    if (!ProjectWorldLocationToScreen(Location+FVector(0,0,85), Head) ||
+        !ProjectWorldLocationToScreen(Location-FVector(0,0,78), Feet)) continue;
+    const FVector2D Segment = Feet-Head;
+    const double LengthSquared = Segment.SizeSquared();
+    const double Along = LengthSquared > UE_SMALL_NUMBER
+        ? FMath::Clamp(FVector2D::DotProduct(DragEnd-Head, Segment)/LengthSquared, 0.0, 1.0) : 0.0;
+    const float Distance = FVector2D::Distance(Head+Segment*Along, DragEnd);
     if (Distance < Closest) { Closest = Distance; Unit = Candidate; }
    }
    if (Unit && Unit->UnitRole == EBGRole::Operative) Result.Add(Unit);
@@ -475,8 +496,8 @@ void ABGHUD::DrawHUD() {
  FString Objective = Op->bSpecialistAcquired
   ? TEXT("Extract the specialist and surviving squad at the west marker.")
   : TEXT("Acquire the research specialist inside the controlled facility.");
- Text(Objective,BX,BY+32*S,White);
- Text(TEXT("Right-click orders. Ctrl+right-click attacks a unit, door or vehicle."),BX,BY+56*S,Muted,.9f);
+ Text(Objective,BX,BY+27*S,White,.92f);
+ Text(TEXT("Right-click orders  |  Ctrl: force attack  |  Shift: queue"),BX,BY+49*S,Muted,.84f);
  int32 LivingOperatives = 0, ExtractedOperatives = 0;
  for (ABGUnit* Unit : Op->Units) if (IsValid(Unit) && Unit->UnitRole == EBGRole::Operative && Unit->Alive()) {
   ++LivingOperatives;
@@ -488,16 +509,16 @@ void ABGHUD::DrawHUD() {
   ? FString::Printf(TEXT("EXTRACTION %d/%d living operatives | Specialist: %s"),ExtractedOperatives,LivingOperatives,
      SpecialistAtExtraction ? TEXT("AT MARKER") : TEXT("EN ROUTE"))
   : TEXT("Doors provide a service route. Public movement favors holstered weapons.");
- Text(Progress,BX,BY+80*S,Muted,.83f);
+ Text(Progress,BX,BY+70*S,Muted,.80f);
  Text(FString::Printf(TEXT("SECURITY: %s    TIME %02d:%02d    CREDITS %d"),
       Op->AlarmSeconds > 0 ? TEXT("LOCAL ALERT") : TEXT("ROUTINE PATROL"),
-      int32(Op->SimulationSeconds)/60,int32(Op->SimulationSeconds)%60,Op->Credits),BX,BY+107*S,
+      int32(Op->SimulationSeconds)/60,int32(Op->SimulationSeconds)%60,Op->Credits),BX,BY+91*S,
       Op->AlarmSeconds > 0 ? Red : White,.9f);
  FString State = UGameplayStatics::IsGamePaused(this) ? TEXT("TACTICAL PAUSE: orders remain available; P resumes.") : TEXT("REAL-TIME OPERATION");
  if (Op->Outcome == EBGOutcome::Success) State = TEXT("ACQUISITION COMPLETE  /  Reward settled  /  F8 replay");
  else if (Op->Outcome == EBGOutcome::Failed) State = TEXT("OPERATION FAILED  /  F8 restart or F9 load");
  else if (Op->Outcome == EBGOutcome::Aborted) State = TEXT("OPERATION ABORTED  /  F8 restart or F9 load");
- Text(State,BX,BY+133*S,Op->Outcome == EBGOutcome::Failed ? Red : Accent,.87f);
+ Text(State,BX,BY+114*S,Op->Outcome == EBGOutcome::Failed ? Red : Accent,.84f);
  Box(L.Notice,FLinearColor(.035f,.045f,.05f,.94f));
  const FString Notice = !Op->Notice.IsEmpty() && Op->SimulationSeconds <= Op->NoticeExpires
   ? Op->Notice : TEXT("Select operatives with 1-4, drag or Space. Shift queues orders.");
@@ -554,18 +575,18 @@ void ABGHUD::DrawHUD() {
   Box(R,FLinearColor(.025f,.04f,.043f,.97f)); Border(R,Selected ? Accent : Muted);
   if (!Unit) { Text(TEXT("UNASSIGNED"),R.X+12*S,R.Y+12*S,Muted); continue; }
   Text(FString::Printf(TEXT("%d  %s"),Index+1,*Unit->Label),R.X+12*S,R.Y+10*S,Selected ? Accent : White,.9f);
-  DrawRect(FLinearColor(.12f,.16f,.16f,1),R.X+12*S,R.Y+38*S,R.Width-24*S,8*S);
-  DrawRect(Unit->Health > 35 ? Accent : Red,R.X+12*S,R.Y+38*S,
+  DrawRect(FLinearColor(.12f,.16f,.16f,1),R.X+12*S,R.Y+31*S,R.Width-24*S,8*S);
+  DrawRect(Unit->Health > 35 ? Accent : Red,R.X+12*S,R.Y+31*S,
            (R.Width-24*S)*FMath::Clamp(Unit->Health/100.f,0.f,1.f),8*S);
-  Text(FString::Printf(TEXT("HEALTH %.0f"),FMath::Max(Unit->Health,0.f)),R.X+12*S,R.Y+52*S,White,.78f);
+  Text(FString::Printf(TEXT("HEALTH %.0f"),FMath::Max(Unit->Health,0.f)),R.X+12*S,R.Y+44*S,White,.78f);
   const auto* Definition = Unit->WeaponDefinition();
   FString Weapon = Definition ? Definition->Label : TEXT("No equipped weapon");
   if (Unit->Inventory.IsValidIndex(Unit->WeaponIndex)) {
    const auto& Item = Unit->Inventory[Unit->WeaponIndex];
    Weapon += FString::Printf(TEXT("  %d / %d"),Item.Ammo,Item.Reserve);
   }
-  Text(Weapon.Left(31),R.X+12*S,R.Y+74*S,Muted,.75f);
-  Text(Status(Unit),R.X+12*S,R.Y+99*S,Unit->Alive() ? Accent : Red,.75f);
+  Text(Weapon.Left(31),R.X+12*S,R.Y+63*S,Muted,.75f);
+  Text(Status(Unit),R.X+12*S,R.Y+84*S,Unit->Alive() ? Accent : Red,.75f);
  }
  Box(L.Map,FLinearColor(.025f,.04f,.043f,.97f)); Border(L.Map,Muted);
  Text(TEXT("DISTRICT / CLICK TO PAN"),L.Map.X+12*S,L.Map.Y+10*S,Accent,.76f);
@@ -601,20 +622,21 @@ void ABGHUD::DrawHUD() {
   DrawLine(P.X-5*S,P.Y,P.X+5*S,P.Y,White,S);
   DrawLine(P.X,P.Y-5*S,P.X,P.Y+5*S,White,S);
  }
- for (ABGUnit* Unit : Commander->Selected) {
+ for (ABGUnit* Unit : Squad(Op)) {
   FVector2D P;
-  if (IsValid(Unit) && Unit->Alive() && !Unit->IsSeated() &&
-      Commander->ProjectWorldLocationToScreen(Unit->EffectiveLocation()+FVector(0,0,150),P)) {
-   float LabelWidth = 0, LabelHeight = 0;
-   GetTextSize(Unit->Label,LabelWidth,LabelHeight,GEngine->GetMediumFont(),.7f*S);
-   const float LabelX = P.X-LabelWidth*.5f, LabelY = P.Y-14*S;
-   const FLinearColor Outline(.008f,.012f,.015f,1);
-   Text(Unit->Label,LabelX-S,LabelY-S,Outline,.7f);
-   Text(Unit->Label,LabelX+S,LabelY-S,Outline,.7f);
-   Text(Unit->Label,LabelX-S,LabelY+S,Outline,.7f);
-   Text(Unit->Label,LabelX+S,LabelY+S,Outline,.7f);
-   Text(Unit->Label,LabelX,LabelY,Accent,.7f);
-  }
+  if (!IsValid(Unit) || !Unit->Alive() || Unit->IsSeated() ||
+      !Commander->ProjectWorldLocationToScreen(Unit->EffectiveLocation()+FVector(0,0,85),P) ||
+      OverHUD(L,P)) continue;
+  const bool Chosen = Commander->Selected.Contains(Unit);
+  const FString Label = FString::Printf(TEXT("%d %s"),Unit->EntityId,*Unit->Label);
+  float LabelWidth = 0, LabelHeight = 0;
+  GetTextSize(Label,LabelWidth,LabelHeight,GEngine->GetMediumFont(),.67f*S);
+  const float LabelX = P.X-LabelWidth*.5f, LabelY = P.Y-18*S;
+  const FHUDRectangle Tag{LabelX-4*S,LabelY-2*S,LabelWidth+8*S,LabelHeight+4*S};
+  if (OverHUD(L,FVector2D(Tag.X,Tag.Y)) || OverHUD(L,FVector2D(Tag.X+Tag.Width,Tag.Y+Tag.Height))) continue;
+  Box(Tag,FLinearColor(.018f,.027f,.03f,.85f));
+  DrawLine(P.X,P.Y-3*S,P.X,P.Y+3*S,Chosen ? Accent : Muted,S);
+  Text(Label,LabelX,LabelY,Chosen ? Accent : White,.67f);
  }
  if (Commander->bDragging) {
   const auto A = Commander->DragStart, B = Commander->DragEnd;

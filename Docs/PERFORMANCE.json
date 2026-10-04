@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "PASSED_BOUNDED_FOUNDATION_CAPTURE",
+  "status": "HISTORICAL_PACKAGE05_CAPTURE",
   "passed": true,
   "capture_data_valid": true,
   "shutdown_verified": true,
@@ -172,5 +172,11 @@
     "The measured average is approximately 88.44 FPS in this bounded scene; combat and complete-mission performance still require measurement.",
     "Maximum frame time was 59.7132 milliseconds; this result does not certify uninterrupted 60 FPS.",
     "The first capture was discarded; its warmup duration includes initial engine loading stalls."
-  ]
+  ],
+  "applies_to": "Historical Package05 only; the current Package07 graphics pass has not been benchmarked.",
+  "current_graphics_pass": {
+    "package_archive": "07",
+    "measured": false,
+    "reason": "Active screensaver blocks representative visible-window review and measurement."
+  }
 }

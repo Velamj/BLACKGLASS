@@ -2,46 +2,44 @@
 
 BLACKGLASS is a native, offline Windows real-time isometric tactics project. Its working title is not a cleared commercial brand.
 
-**Milestone 1's playable foundation is tested in Unreal Engine 5.8.3 and a local Development Windows package. A bounded visual pass is implemented and inspected in the running executable. Art remains procedural placeholder work; the polished vertical slice and full campaign are not complete.**
+**Milestone 1 remains a playable foundation. The new graphics pass compiles, has passed its native integration scenario, and is packaged and rendered in Unreal 5.8.3. Art remains interim work; the polished vertical slice and full campaign are not complete.**
+
+## Current graphics pass
+
+- Industrial facades now have warehouse, administration and research identities, framed windows, structural bays, roof parapets, skylights, equipment, pipes, signage and paving detail. Visual dressing does not add collision or claim structural destruction.
+- Thirteen original source meshes replace cube characters/van panels with shaped coats, heads, limbs, boots, a van cabin/body/tires and thin selection rings. The sources total 5,584 triangles; character parts remain articulated static meshes, with final skeletal rigs and action animation pending.
+- Original concrete/asphalt wear and normal textures drive an owned industrial material. Original foundation assets are preserved. Instanced-static-mesh support is saved explicitly.
+- The true orthographic camera uses the classic 35.264-degree isometric pitch and closer default framing. Living on-foot controlled operatives use role-filtered silhouette outlines; NPCs are excluded. Projected head-to-foot selection helps pick obscured operatives.
+- Four persistent status panels, compact operative labels, alerts and the minimap use a cleaner layout. Foreground roof/floor cutaways and floor selection remain absent.
 
 ## Playable foundation
 
-- Depot Block contains streets, a controlled facility, two interactive/destructible gates, a narrow service route and a raised bridge with accessible ramps.
-- Four independently selectable operatives support formation destinations, queued orders, stop/hold, holstering, two weapon choices and reloads. Articulated primitive figures walk, aim and recoil.
-- A true orthographic camera supports pan, edge scrolling, zoom, stepped rotation, recentering and tracking. Four status panels, objectives, alerts and an interactive detection-filtered minimap show actual state.
-- CSV-defined sidearm and automatic weapons use real collision, ammunition, cadence, spread, range and damage. Doors and the van receive damage; structural destruction is absent.
-- Eight civilians walk simple routes and react locally to danger. Four initial guards patrol, investigate sight/sound events and remember crimes; bounded reinforcements can respond.
-- A six-seat van supports approach/boarding, driver orders, swept street movement, collision stopping, disembarking, damage, destruction and saved occupants.
-- Interact with Iona Vale, then escort her and every surviving operative into extraction. Success pays 6000 credits once. Target loss, total squad loss, abort and restart are explicit.
-- Optional tactical pause permits orders while freezing simulation. F5/F9 quicksave/load and autosaves preserve implemented state using stable IDs, validation, checksum, staged writes and a previous valid save.
-- The visual pass adds original seeded concrete/asphalt textures, a material graph, 1062 noncolliding dressing instances, clearer coat/face silhouettes, outlined labels, notice wrapping and corrected minimap roads. The established collision, navigation and camera structure is retained.
+Four independently selectable operatives support individual/group/queued real-time orders, stop/hold, two distinct weapons, reloads and holstering. Navigation covers streets, two interactive/destructible gates, a narrow service route and a raised bridge with ramps. Shots use real collision, range, ammunition and damage. Eight civilians follow simple routes; four initial guards use local sight/sound and remembered incidents, with bounded reinforcement response.
 
-## Verified engineering and play
+A six-seat van supports approach/boarding, driver orders, swept travel, blocked exits, damage/destruction and saved occupants. Acquire Iona Vale contextually, then extract her and every survivor for one 6,000-credit reward. Target loss, squad loss, abort and restart are explicit. Optional tactical pause and versioned F5/F9 quicksave/load preserve implemented authoritative state; safe writes retain a previous valid save.
 
-Unreal 5.8.3, MSVC 14.50.35728 and Windows SDK 10.0.26100.0 compiled the editor/game modules and the editor-only ue-mcp 1.3.9 bridge. The real map is Content/Maps/DepotBlock.umap. Native actor state owns gameplay; the portable simulation is a separate test fixture.
+## Verification and current blocker
 
-Blackglass.Foundation.Runtime passed in 116.17 seconds with zero errors and one documented CrowdFollowing initialization warning. It exercises real navigation/gate regeneration, collision/local evidence, pause, four-operative boarding and the height-boundary regression, van destruction, representative active save/load, corruption rejection, escort, extraction/reward consistency, casualties, failure and restart. Background NPC ticks are controlled for isolated contracts; this does not establish natural balance.
+The native integration scenario passed in 115.85 seconds with zero errors and the existing documented navigation initialization warning. It covers movement/gates/vertical routes, shooting/local evidence, pause, occupancy/destruction, representative save/load, casualties, extraction/reward-once and restart. Nine outline-state checkpoints exclude NPCs and verify selection, vehicles, casualties and restoration through normal ticks. The final cloth/selection-ring refinement and corrected sign placement are included in this passing run.
 
-Package05 BuildCookRun succeeded in 64.54 seconds. Cooked map, material, both textures, weapon data and input/DPI settings were independently read back. The archive contains 48 files and 956182427 bytes excluding runtime Saved files; it was launched on the documented Windows test system.
+Final Editor build04 succeeded in 7.80 seconds. Package07 BuildCookRun succeeded with exit 0 in 42.91 seconds; its archive contains 48 files/957,441,458 bytes excluding runtime Saved files. Its native executable launched with a measured physical 1920×1080 client. Cooked listing confirms the map, 13 meshes, 2 new materials and 4 new textures. [Actual packaged render](Evidence/package07-district.png) was captured directly from Unreal's game viewport, with 32 render warmup frames and no image editing.
 
-Ordinary controls completed the foot mission in Package04. Final Package05 verified 1080p rendering, fresh group boarding without the earlier workaround, vehicle travel/disembarking, and loading/resaving that completed mission with 6000 credits retained once. Actual captures are in Docs/Evidence; the Package05 won frame represents a restored mission, not a new completion.
-
-Final Package05 completed two 10,000-frame captures with process exit 0 and a measured physical 1920 × 1080 client. The second capture contained 9,999 positive samples over 113.05 seconds: mean 11.31 ms (about 88.44 FPS), p95 12.14 ms, maximum 59.71 ms. The 60 FPS average/frame-budget target is met for this idle district on the documented integrated Arc 140V system; heavy combat and full-mission performance remain unmeasured. CSV processing runs synchronously through an engine-supported option to avoid a diagnosed capture-worker teardown fault; profiling overhead is included. Detailed evidence and limits are in PERFORMANCE.json and VERIFICATION.md; reproduction is in BUILD.md.
+**The Windows test desktop's active screensaver currently prevents foreground access.** The input helper rejected focus with foreground PID 0 and sent no input. New physical-control/occluded-selection, boarded/dead-outline, 720p/rotated-view checks and a representative visible-window benchmark remain pending. Engine viewport captures prove the displayed render; they do not replace those interaction tests. Package05's 88.44 FPS result remains historical in PERFORMANCE.json and does not apply to Package07.
 
 ## Known defects and fidelity gaps
 
-- Procedural geometry and articulated primitive figures remain placeholders. Production models, rigs, full action animation, final materials, lighting/weather, original sound, music, voices and subtitles are pending. This art does not yet meet the original game's presentation benchmark.
-- Foreground buildings can obscure controlled operatives, as observed during the vehicle exit check. Roof/floor cutaways, controlled-unit outlines, advanced occlusion handling and floor selection remain pending.
-- The van uses bounded swept movement. Autonomous traffic avoidance/rerouting, transit and full vehicle physics are absent. Guards currently ignore seated operatives; vehicle targeting/pursuit is incomplete.
-- NPC schedules, suspicion/restricted-area rules, reporting/communications, alarm recovery, roadblocks and coordinated rival teams are incomplete.
-- Specialist acquisition uses a contextual escort. Neural settings/override are absent; this is not Hostile Acquisition or proof of its alternate approaches.
-- Inventory ammunition/selected equipment persist, but purchasing/drop/retrieve/transfer/sale and recovered-technology research are pending.
-- Cybernetics, reserve roster, recovery/recruitment, ironman, corporation customization, territories, taxation, rivals, research, campaign time and subsequent operations are pending.
-- Wider weapons, selected structural destruction, difficulty/friendly-fire settings, classic mapping, save-slot UI, scalable accessibility/settings and tutorials are pending.
-- One foundation district is present. No polished operation, campaign territory or empty map is counted toward the ten-operation alpha or eventual 50-territory target. Packaged compatibility on a clean second machine remains untested.
+- The district remains an authored foundation assembled from procedural shapes. Repeated roof forms, thin details, dark small silhouettes and limited surface/lighting variation still need production art work. The current pass does not establish the original-game visual benchmark.
+- Character rigs, polished walking/aiming/reload/injury/equipment/boarding animation, weather, original sound/music/voices/subtitles and a final interface are pending.
+- Roof/floor cutaways and actual visual occlusion-state review are pending. Selection silhouettes are implemented but not fully tested through physical controls.
+- Van movement is bounded and swept; traffic avoidance/rerouting, transit, full vehicle physics and guard pursuit/attacks against seated operatives are incomplete.
+- Full NPC schedules, suspicion/restricted areas, reporting/communications, alarm recovery, roadblocks and coordinated rival teams remain incomplete.
+- Specialist acquisition is contextual escort, not neural override. Neural controls/override, cybernetics, reserve roster, casualty recovery/recruitment and ironman remain absent.
+- Inventory purchase/drop/retrieval/transfer/sale, recovered-technology research, corporation customization, territories/economy/taxation, rivals, research/campaign time and a subsequent operation remain absent.
+- Wider equipment, structural destruction, difficulty/friendly-fire settings, classic mapping/remapping, save-slot UI, accessibility/settings and tutorials remain pending.
+- One foundation district is present. No polished operation or empty map is counted toward the alpha/50-territory target; clean second-machine packaging remains untested.
 
 ## Next bounded step
 
-Begin the Hostile Acquisition vertical slice with a reviewed environment/operative art benchmark at the normal camera distance and reliable controlled-unit occlusion handling. Preserve the original four-operative real-time structure while connecting briefing/intelligence, preparation/modifications, functional neural settings/override, recovery/debriefing, territory income, a researched usable upgrade and a subsequent operation.
+Unlock the Windows test desktop, review this packaged graphics pass through normal controls and complete occlusion/boarding/death/save-load, 720p/rotation and visible-window performance checks. Then improve authored environment variation and replace interim character rigs before connecting the Hostile Acquisition systems.
 
 All seven brief parts and Milestones 2–4 remain preserved in MASTER_BRIEF.md and FIDELITY_LEDGER.md.

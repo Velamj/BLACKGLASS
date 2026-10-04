@@ -1,6 +1,6 @@
 # Build and verification instructions
 
-BLACKGLASS has a native Unreal C++ project and a real foundation map. The pre-visual Package04 Windows development build completed its escort mission through ordinary controls on the verified toolchain. The subsequent visual Package05 has built, passed archived content/configuration checks, and received a running palette/HUD and ordinary-input review at a measured 1920x1080. Its bounded packaged performance capture also passed; full-mission and heavy-combat performance remain unmeasured. Build, runtime, input and presentation evidence are recorded separately in [VERIFICATION.md](VERIFICATION.md); a successful UnrealBuildTool run alone does not establish a playable milestone.
+BLACKGLASS has a native Unreal C++ project and a real foundation map. The current graphics pass adds original shaped character/van meshes, industrial facades and surfaces, a classic isometric camera and controlled-operative silhouettes. The latest actual build, runtime, rendering and package results are recorded separately in [VERIFICATION.md](VERIFICATION.md). Earlier Package04/05 control and performance results remain historical; a successful build alone does not establish a playable milestone.
 
 ## Native project and dependencies
 
@@ -71,14 +71,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Foundation map creation failed.' }
 
 `Create-Foundation.py` loads the compiled `BGOperation` class, creates a blank real Unreal map, assigns the game mode and saves `/Game/Maps/DepotBlock`. The game mode constructs the foundation district and authoritative gameplay actors when play begins; the map does not contain duplicate preplaced operatives.
 
-## Regenerate the original foundation surface art
+## Rebuild the owned visual assets
 
-`Scripts/Create-Foundation-Materials.py` generates original, seeded 512x512 tileable concrete and asphalt TGA source images and builds the owned Unreal surface material. It downloads no artwork. Close the BLACKGLASS editor before regenerating assets; preserve other projects and their content.
+`Scripts/Art/Build-Visual-Assets.py` builds the current industrial surface material, original wear/normal textures, controlled-operative outline material and original character/van mesh imports. Source OBJ meshes are already included; `python Scripts/Art/Generate-Character-Meshes.py` reproduces them using the standard library. It downloads no artwork. Close the BLACKGLASS editor before regenerating assets; preserve other projects and their content.
 
 ~~~powershell
 $editorCmd = Join-Path $engineRoot 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
 $project = Join-Path $projectRoot 'BLACKGLASS.uproject'
-$materialScript = Join-Path $projectRoot 'Scripts\Create-Foundation-Materials.py'
+$materialScript = Join-Path $projectRoot 'Scripts\Art\Build-Visual-Assets.py'
 & $editorCmd $project -run=pythonscript "-script=$materialScript" -unattended -NoSound -NoSplash
 if ($LASTEXITCODE -ne 0) { throw 'Foundation material generation failed.' }
 $materialReport = Get-Content -LiteralPath .\Saved\Verification\material-generation.json -Raw | ConvertFrom-Json
@@ -89,12 +89,14 @@ if (!$materialReport.validated -or $materialReport.errors.Count -ne 0) {
 
 Outputs are:
 
-- Source images: `SourceArt/Materials/T_BG_ConcreteDetail.tga` (seed 1337) and `T_BG_AsphaltDetail.tga` (seed 8701).
-- Imported textures: `/Game/Textures/T_BG_ConcreteDetail` and `/Game/Textures/T_BG_AsphaltDetail`.
-- Surface material: `/Game/Materials/M_BlackglassSurface`, with Color, Roughness, SurfaceDetail, DetailScale and DetailStrength parameters.
-- Local validation report: `Saved/Verification/material-generation.json`.
+- Source images: `SourceArt/Materials/T_BG_ConcreteWear.tga` (seed 1337), `T_BG_AsphaltWear.tga` (seed 8701), and both corresponding `WearNormal.tga` maps.
+- Imported textures: `/Game/Textures/T_BG_ConcreteWear`, `/Game/Textures/T_BG_AsphaltWear` and the corresponding `WearNormal` assets.
+- Surface material: `/Game/Materials/M_BGIndustrialSurface`, with Color, Roughness, SurfaceDetail, SurfaceNormal, DetailScale, DetailStrength, Metalness and Emission parameters; instanced-static-mesh usage is explicitly saved.
+- Outline material: `/Game/Materials/M_BGOperativeOutline`; custom stencil 1/2 is reserved for living, on-foot controlled operatives. NPCs are excluded.
+- Mesh sources: `SourceArt/Characters/*.obj` and `manifest.json`; twelve imported static meshes in `/Game/Characters`.
+- Local validation reports: `Saved/Verification/material-generation.json`, `outline-generation.json` and `character-mesh-import.json`.
 
-The script checks ownership metadata before replacing assets at those names and refuses unrelated existing assets. TextureFactory import validation checks saved assets for private machine import paths. A successful report establishes generation and material validation; inspect the running district and recook the package to verify its appearance. These authored surfaces improve the prototype and do not make its geometry, characters or complete art direction production-ready. See [ASSET_MANIFEST.md](ASSET_MANIFEST.md) for source and placeholder status.
+The scripts check ownership metadata and source hashes, reuse unchanged owned assets and refuse unrelated existing assets. Changed mesh/texture sources require a new asset version; unchanged graphs are not destructively rebuilt. Earlier foundation assets remain preserved. TextureFactory import validation checks saved assets for private machine import paths. A successful report establishes generation and material validation; inspect the running district and recook the package to verify its appearance. These authored surfaces improve the prototype and do not make its geometry, characters or complete art direction production-ready. See [ASSET_MANIFEST.md](ASSET_MANIFEST.md) for source and placeholder status.
 
 ## Launch through ordinary controls
 
@@ -158,7 +160,11 @@ Get-ChildItem -LiteralPath .\Artifacts\Windows -Recurse -File -Filter '*.exe'
 
 Run the archived game and repeat the ordinary-controls and mission checks after subsequent changes. Editor play and successful game-target compilation do not establish packaged compatibility. The final archive's content verification and the earlier Package04 ordinary-input results are recorded separately below.
 
-## Launch the packaged build
+## Current Package07 archive
+
+The current graphics pass packaged successfully with UAT exit 0 in 42.91 seconds and launched at a measured 1920×1080 client. The archive has 48 files/957,441,458 bytes excluding runtime Saved output. Current paths are `Artifacts/Windows/Blackglass.exe` and `Artifacts/Windows/BLACKGLASS/Binaries/Win64/Blackglass.exe`; keep the complete directory together. Actual identities are in [PACKAGE07.json](PACKAGE07.json), and [VERIFICATION.md](VERIFICATION.md) records the render and remaining physical-input/performance blocker. Earlier Archives 05/06 are preserved locally under `Artifacts/Windows-Foundation05` and `Artifacts/Windows-Graphics06`.
+
+## Historical Package05 archive
 
 The visual Package05 UAT run reported **BUILD SUCCESSFUL**, **exit code 0**, and **64.54 seconds** for BuildCookRun. Independently counted archive contents, excluding runtime `Saved/` files, are **48 files totaling 956,182,427 bytes**. These are development-build totals including symbols and supporting binaries. Actual executable paths relative to the checkout are:
 
@@ -210,7 +216,7 @@ A passing capture requires both the game and runner to exit zero, exactly two co
 
 Local results are `Saved/Verification/<RunLabel>-<UTC timestamp>.summary.json` and `.context.json`, plus engine/stdout logs. The summary records hardware, driver, build, resolution, quality, actor counts, frame-time statistics and capture limitations. Raw CSV files remain under the packaged game's `BLACKGLASS/Saved/` directory. Keep raw logs and CSV metadata local; review any summary before publishing it.
 
-The `foundation-final-certified` run passed with game exit 0 and runner exit 0. Both 10,000-frame nominal captures completed; the measured second capture retained **9,999 positive frame samples over 113.054326 seconds** at a physically measured **1920x1080**. Mean frame time was **11.306563 ms**, approximately **88.44 FPS**; median was **11.2302 ms**, 95th percentile **12.1444 ms**, and maximum **59.7132 ms**. The natural idle district contained 17 units, one van, two doors and 131 total actors on the tested integrated Intel Arc 140V system. Profiling overhead is included.
+The historical Package05 `foundation-final-certified` run passed with game exit 0 and runner exit 0. This result applies to that archive; the current graphics pass has not been benchmarked. Both 10,000-frame nominal captures completed; the measured second capture retained **9,999 positive frame samples over 113.054326 seconds** at a physically measured **1920x1080**. Mean frame time was **11.306563 ms**, approximately **88.44 FPS**; median was **11.2302 ms**, 95th percentile **12.1444 ms**, and maximum **59.7132 ms**. The natural idle district contained 17 units, one van, two doors and 131 total actors on the tested integrated Intel Arc 140V system. Profiling overhead is included.
 
 The measured average exceeds the 60 FPS target in this bounded idle scenario. It does not establish uninterrupted 60 FPS, complete-mission, heavy-combat or campaign stress performance. Missing or zero GPU timing means unavailable evidence; global thread times include waits. See [PERFORMANCE.json](PERFORMANCE.json) for the actual hardware, applied quality settings and profiling limits, and [VERIFICATION.md](VERIFICATION.md) for the recorded pass.
 

@@ -3,6 +3,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Engine/Texture.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
@@ -29,13 +30,17 @@ AStaticMeshActor* Block(UWorld* World, const FVector& Position, const FVector& S
     Actor->SetActorScale3D(Size / 100.f);
     Mesh->SetCollisionProfileName(Collision ? TEXT("BlockAll") : TEXT("NoCollision"));
     Mesh->SetCanEverAffectNavigation(Collision);
-    if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_BlackglassSurface.M_BlackglassSurface"))) {
+    if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_BGIndustrialSurface.M_BGIndustrialSurface"))) {
         UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Base, Actor);
         Material->SetVectorParameterValue(TEXT("Color"), Color);
         Material->SetScalarParameterValue(TEXT("Roughness"), Asphalt ? .94f : .84f);
         Material->SetScalarParameterValue(TEXT("DetailScale"), FMath::Clamp(static_cast<float>(FMath::Max(Size.X, Size.Y) / 180.), 1.f, 70.f));
-        if (Asphalt) Material->SetTextureParameterValue(TEXT("SurfaceDetail"),
-            LoadObject<UTexture>(nullptr, TEXT("/Game/Textures/T_BG_AsphaltDetail.T_BG_AsphaltDetail")));
+        if (Asphalt) {
+            Material->SetTextureParameterValue(TEXT("SurfaceDetail"),
+                LoadObject<UTexture>(nullptr, TEXT("/Game/Textures/T_BG_AsphaltWear.T_BG_AsphaltWear")));
+            Material->SetTextureParameterValue(TEXT("SurfaceNormal"),
+                LoadObject<UTexture>(nullptr, TEXT("/Game/Textures/T_BG_AsphaltWearNormal.T_BG_AsphaltWearNormal")));
+        }
         Mesh->SetMaterial(0, Material);
     }
     Actor->Tags.Add(TEXT("BlackglassDistrict"));
@@ -46,6 +51,7 @@ AStaticMeshActor* Block(UWorld* World, const FVector& Position, const FVector& S
 struct FBlackglassDressing {
     AActor* Owner = nullptr;
     UStaticMesh* Cube = nullptr;
+    UStaticMesh* Cylinder = nullptr;
     UMaterialInterface* Surface = nullptr;
     TMap<FName, UInstancedStaticMeshComponent*> Batches;
     int32 Instances = 0;
@@ -59,18 +65,21 @@ struct FBlackglassDressing {
         Owner->AddInstanceComponent(Root);
         Root->RegisterComponent();
         Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-        Surface = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_BlackglassSurface.M_BlackglassSurface"));
+        Cylinder = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+        Surface = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_BGIndustrialSurface.M_BGIndustrialSurface"));
     }
     void Add(FName Key, const FVector& Position, const FVector& Size, const FLinearColor& Color,
-        float Roughness = .8f, float DetailStrength = 0.f, FRotator Rotation = FRotator::ZeroRotator) {
-        if (!Owner || !Cube || !Surface) return;
+        float Roughness = .8f, float DetailStrength = 0.f, FRotator Rotation = FRotator::ZeroRotator,
+        float Metalness = 0.f, float Emission = 0.f, bool UseCylinder = false) {
+        UStaticMesh* Shape = UseCylinder ? Cylinder : Cube;
+        if (!Owner || !Shape || !Surface) return;
         UInstancedStaticMeshComponent* Batch = Batches.FindRef(Key);
         if (!Batch) {
             Batch = NewObject<UInstancedStaticMeshComponent>(Owner, Key);
             Owner->AddInstanceComponent(Batch);
             Batch->SetupAttachment(Owner->GetRootComponent());
             Batch->SetMobility(EComponentMobility::Static);
-            Batch->SetStaticMesh(Cube);
+            Batch->SetStaticMesh(Shape);
             Batch->SetCollisionProfileName(TEXT("NoCollision"));
             Batch->SetCanEverAffectNavigation(false);
             UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Surface, Owner);
@@ -78,6 +87,8 @@ struct FBlackglassDressing {
             Material->SetScalarParameterValue(TEXT("Roughness"), Roughness);
             Material->SetScalarParameterValue(TEXT("DetailStrength"), DetailStrength);
             Material->SetScalarParameterValue(TEXT("DetailScale"), 2.f);
+            Material->SetScalarParameterValue(TEXT("Metalness"), Metalness);
+            Material->SetScalarParameterValue(TEXT("Emission"), Emission);
             Batch->SetMaterial(0, Material);
             Batch->RegisterComponent();
             Batches.Add(Key, Batch);
@@ -85,44 +96,156 @@ struct FBlackglassDressing {
         Batch->AddInstance(FTransform(Rotation.Quaternion(), Position, Size / 100.f), true);
         ++Instances;
     }
-    void Facade(const FVector& Center, const FVector& Size) {
-        const FLinearColor Window(.075f, .16f, .18f), Frame(.065f, .075f, .08f);
-        const FLinearColor Trim(.48f, .48f, .43f), Equipment(.24f, .29f, .3f);
-        const float Ground = Center.Z - Size.Z * .5f;
-        auto Face = [&](const FVector& Origin, float Width, const FRotator& Rotation) {
-            const int32 Columns = FMath::Clamp(FMath::FloorToInt(Width / 310.f), 2, 7);
+    void Pipe(FName Key, const FVector& Start, const FVector& End, float Diameter,
+        const FLinearColor& Color, float Metalness = .55f) {
+        const FVector Direction = End - Start;
+        const float Length = Direction.Size();
+        if (Length <= KINDA_SMALL_NUMBER) return;
+        const FRotator Rotation = FQuat::FindBetweenNormals(FVector::UpVector, Direction / Length).Rotator();
+        Add(Key, (Start + End) * .5f, FVector(Diameter, Diameter, Length), Color, .53f, .12f,
+            Rotation, Metalness, 0.f, true);
+    }
+    void Label(const FString& Text, const FVector& Position, const FRotator& Facing, float Height = 30.f) {
+        if (!Owner) return;
+        UTextRenderComponent* Sign = NewObject<UTextRenderComponent>(Owner);
+        Owner->AddInstanceComponent(Sign);
+        Sign->SetupAttachment(Owner->GetRootComponent());
+        Sign->SetMobility(EComponentMobility::Static);
+        Sign->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Sign->SetCanEverAffectNavigation(false);
+        Sign->SetText(FText::FromString(Text));
+        Sign->SetTextRenderColor(FColor(218, 214, 187));
+        Sign->SetHorizontalAlignment(EHTA_Center);
+        Sign->SetVerticalAlignment(EVRTA_TextCenter);
+        Sign->SetWorldSize(Height);
+        // Establish the static sign transform before registration; runtime moves are rejected.
+        Sign->SetWorldLocationAndRotation(Position, Facing);
+        Sign->RegisterComponent();
+    }
+    void Facade(const FVector& Center, const FVector& Size, int32 Style = 0, const FString& Name = TEXT("SEALED AUXILIARY BLOCK")) {
+        const FLinearColor Frame(.10f, .12f, .13f), Trim(.40f, .42f, .39f), RoofColor(.12f, .15f, .16f);
+        const FLinearColor Glass(.18f, .31f, .33f), GlassWarm(.48f, .43f, .29f), Plant(.27f, .32f, .32f);
+        const FLinearColor Oxide(.34f, .23f, .14f), Copper(.34f, .30f, .20f), Stripe(.65f, .54f, .30f);
+        const FLinearColor Skins[] = { FLinearColor(.29f, .31f, .28f), FLinearColor(.30f, .24f, .19f), FLinearColor(.23f, .30f, .31f) };
+        const int32 Palette = FMath::Clamp(Style, 0, 2);
+        const FName SkinKey(*FString::Printf(TEXT("Cladding%d"), Palette));
+        const float Ground = Center.Z - Size.Z * .5f, Roof = Center.Z + Size.Z * .5f;
+        auto Face = [&](const FVector& Origin, float Width, const FRotator& Rotation, bool Entrance) {
+            const int32 Columns = FMath::Clamp(FMath::FloorToInt(Width / (Style == 2 ? 255.f : 325.f)), 2, 12);
             const int32 Rows = Size.Z >= 500.f ? 2 : 1;
-            auto Place = [&](FName Key, FVector Local, FVector Dimensions, FLinearColor Color, float Roughness) {
-                Add(Key, Origin + Rotation.RotateVector(Local), Dimensions, Color, Roughness, 0.f, Rotation);
+            const float Bay = Width / Columns;
+            auto Place = [&](FName Key, const FVector& Local, const FVector& Dimensions, const FLinearColor& Color,
+                float Roughness = .8f, float Detail = 0.f, float Metalness = 0.f, float Emission = 0.f) {
+                Add(Key, Origin + Rotation.RotateVector(Local), Dimensions, Color, Roughness, Detail,
+                    Rotation, Metalness, Emission);
             };
+            auto AtZ = [&](float Z) { return Z - Origin.Z; };
+            // Shallow cladding relief touches the unchanged opaque collision hull.
+            Place(SkinKey, FVector(0, 0, AtZ(Ground + Size.Z * .5f)), FVector(Width - 8, 8, Size.Z - 8), Skins[Palette], .86f, .38f);
+            Place(TEXT("FoundationPlinth"), FVector(0, -7, AtZ(Ground + 48)), FVector(Width + 10, 16, 96), Frame, .84f, .25f);
+            Place(TEXT("StoneCornice"), FVector(0, -11, AtZ(Roof - 20)), FVector(Width + 24, 26, 28), Trim, .82f, .25f);
+            const float DoorX = -.5f * Width + .5f * Bay;
             for (int32 Column = 0; Column < Columns; ++Column) {
-                const float X = (Column + .5f) * Width / Columns - Width * .5f;
+                const float X = (Column + .5f) * Bay - Width * .5f;
                 for (int32 Row = 0; Row < Rows; ++Row) {
-                    const float Z = Ground + 175.f + Row * 190.f - Origin.Z;
-                    Place(TEXT("OpaqueGlazing"), FVector(X, 0, Z), FVector(120, 4, 120), Window, .3f);
-                    Place(TEXT("WindowFrames"), FVector(X - 63, 0, Z), FVector(6, 8, 130), Frame, .58f);
-                    Place(TEXT("WindowFrames"), FVector(X + 63, 0, Z), FVector(6, 8, 130), Frame, .58f);
-                    Place(TEXT("WindowFrames"), FVector(X, 0, Z - 63), FVector(132, 8, 6), Frame, .58f);
-                    Place(TEXT("WindowFrames"), FVector(X, 0, Z + 63), FVector(132, 8, 6), Frame, .58f);
+                    if (Entrance && Column == 0 && Row == 0) continue;
+                    const float WindowZ = Ground + 166.f + Row * 210.f;
+                    const float WindowWidth = FMath::Min(Bay - 55.f, Style == 2 ? 175.f : 150.f);
+                    const float WindowHeight = Style == 1 ? 102.f : 116.f;
+                    const bool Warm = (Column + Row * 3 + Style) % 5 == 2;
+                    Place(Warm ? TEXT("WarmOpaqueGlass") : TEXT("SlateOpaqueGlass"), FVector(X, -8, AtZ(WindowZ)),
+                        FVector(WindowWidth, 6, WindowHeight), Warm ? GlassWarm : Glass, .34f, 0.f, .12f, Warm ? .18f : .025f);
+                    for (float Side : { -1.f, 1.f })
+                        Place(TEXT("WindowFrames"), FVector(X + Side * (WindowWidth * .5f + 4), -12, AtZ(WindowZ)),
+                            FVector(8, 12, WindowHeight + 18), Frame, .58f, 0.f, .32f);
+                    for (float Side : { -1.f, 1.f })
+                        Place(TEXT("WindowFrames"), FVector(X, -12, AtZ(WindowZ + Side * (WindowHeight * .5f + 4))),
+                            FVector(WindowWidth + 16, 12, 8), Frame, .58f, 0.f, .32f);
+                    Place(TEXT("WindowFrames"), FVector(X, -14, AtZ(WindowZ)), FVector(5, 11, WindowHeight), Frame, .58f, 0.f, .32f);
+                    Place(TEXT("StoneCornice"), FVector(X, -19, AtZ(WindowZ - WindowHeight * .5f - 10)),
+                        FVector(WindowWidth + 28, 35, 10), Trim, .82f, .25f);
+                    // Uneven blinds are authored opaque strips, not a claim of visible interiors.
+                    if (Warm) for (int32 Slat = 0; Slat < 3; ++Slat)
+                        Place(TEXT("WindowBlinds"), FVector(X, -14, AtZ(WindowZ + WindowHeight * .5f - 15 - Slat * 13.f)),
+                            FVector(WindowWidth - 9, 4, 4), Stripe, .82f);
                 }
-                if (Column > 0) Place(TEXT("PanelSeams"), FVector(X - Width / Columns * .5f, 0, Ground + Size.Z * .5f - Origin.Z),
-                    FVector(4, 5, Size.Z - 20), Frame, .58f);
+                const float JointX = X - Bay * .5f;
+                Place(TEXT("StructuralRibs"), FVector(JointX, -10, AtZ(Ground + Size.Z * .5f)),
+                    FVector(18, 21, Size.Z - 28), Trim, .84f, .27f);
+                if (Style == 1) for (int32 Course = 0; Course < 8; ++Course)
+                    Place(TEXT("MasonryCourses"), FVector(X, -5, AtZ(Ground + 95 + Course * 47.f)),
+                        FVector(Bay - 25, 3, 3), Oxide, .91f, .12f);
             }
-            Place(TEXT("ConcreteTrim"), FVector(0, 0, Ground + 45 - Origin.Z), FVector(Width, 9, 28), Trim, .88f);
-            Place(TEXT("ConcreteTrim"), FVector(0, 0, Ground + Size.Z - 18 - Origin.Z), FVector(Width + 15, 14, 24), Trim, .88f);
+            if (Rows == 2) Place(TEXT("StoneCornice"), FVector(0, -10, AtZ(Ground + 282)),
+                FVector(Width, 22, 14), Trim, .82f, .25f);
+            const FVector DrainTop = Origin + Rotation.RotateVector(FVector(Width * .5f - 28, -26, AtZ(Roof - 28)));
+            const FVector DrainBottom = Origin + Rotation.RotateVector(FVector(Width * .5f - 28, -26, AtZ(Ground + 22)));
+            Pipe(TEXT("CopperDownpipes"), DrainBottom, DrainTop, 14, Copper, .55f);
+            for (int32 Clip = 0; Clip < 3; ++Clip)
+                Place(TEXT("WindowFrames"), FVector(Width * .5f - 28, -27, AtZ(Ground + 60 + Clip * 170.f)),
+                    FVector(28, 12, 6), Frame, .58f, 0.f, .32f);
+            if (Entrance) {
+                const float DoorWidth = FMath::Min(Bay - 38, 230.f);
+                Place(TEXT("SealedServiceDoors"), FVector(DoorX, -12, AtZ(Ground + 120)),
+                    FVector(DoorWidth, 12, 210), Frame, .76f, .13f, .24f);
+                for (int32 Slat = 0; Slat < 10; ++Slat)
+                    Place(TEXT("RoofMetal"), FVector(DoorX, -20, AtZ(Ground + 30 + Slat * 19.f)),
+                        FVector(DoorWidth - 14, 6, 5), Plant, .65f, .16f, .4f);
+                Place(TEXT("StoneCornice"), FVector(DoorX, -40, AtZ(Ground + 240)),
+                    FVector(DoorWidth + 36, 90, 14), Trim, .82f, .25f);
+                Place(TEXT("SignBackplates"), FVector(0, -20, AtZ(Roof - 76)),
+                    FVector(FMath::Min(Width - 45, 1050.f), 16, 62), Frame, .71f, 0.f, .25f);
+                Label(Name, Origin + Rotation.RotateVector(FVector(0, -32, AtZ(Roof - 76))),
+                    FRotator(0, Rotation.Yaw - 90.f, 0), FMath::Min(30.f, Width / 38.f));
+                Place(TEXT("WarmFixtures"), FVector(DoorX, -36, AtZ(Ground + 216)),
+                    FVector(64, 18, 12), FLinearColor(.72f, .63f, .40f), .4f, 0.f, .15f, .45f);
+            }
         };
-        Face(Center + FVector(0, -Size.Y * .5f - 3, 0), Size.X, FRotator::ZeroRotator);
-        Face(Center + FVector(0, Size.Y * .5f + 3, 0), Size.X, FRotator::ZeroRotator);
-        Face(Center + FVector(-Size.X * .5f - 3, 0, 0), Size.Y, FRotator(0, 90, 0));
-        Face(Center + FVector(Size.X * .5f + 3, 0, 0), Size.Y, FRotator(0, 90, 0));
-        const float Roof = Center.Z + Size.Z * .5f;
-        for (int32 Index = 0; Index < 3; ++Index) {
-            const FVector Vent = FVector(Center.X + (Index - 1) * Size.X * .22f, Center.Y, Roof + 45);
-            Add(TEXT("RoofEquipment"), Vent, FVector(150, 170, 90), Equipment, .68f, .3f);
-            Add(TEXT("RoofEquipment"), Vent + FVector(0, 0, 49), FVector(166, 186, 8), Equipment, .68f, .3f);
-            for (int32 Slat = 0; Slat < 5; ++Slat)
-                Add(TEXT("WindowFrames"), Vent + FVector(-56 + Slat * 28.f, 0, 54), FVector(9, 150, 4), Frame, .58f);
+        Face(Center + FVector(0, -Size.Y * .5f - 4, 0), Size.X, FRotator::ZeroRotator, false);
+        Face(Center + FVector(0, Size.Y * .5f + 4, 0), Size.X, FRotator(0, 180, 0), true);
+        Face(Center + FVector(-Size.X * .5f - 4, 0, 0), Size.Y, FRotator(0, -90, 0), true);
+        Face(Center + FVector(Size.X * .5f + 4, 0, 0), Size.Y, FRotator(0, 90, 0), false);
+        Add(TEXT("RoofDecks"), FVector(Center.X, Center.Y, Roof + 3), FVector(Size.X - 16, Size.Y - 16, 6),
+            RoofColor, .88f, .25f);
+        for (float Side : { -1.f, 1.f }) {
+            Add(TEXT("ParapetWalls"), FVector(Center.X, Center.Y + Side * (Size.Y * .5f - 15), Roof + 31),
+                FVector(Size.X, 30, 62), Trim, .83f, .24f);
+            Add(TEXT("ParapetWalls"), FVector(Center.X + Side * (Size.X * .5f - 15), Center.Y, Roof + 31),
+                FVector(30, Size.Y - 60, 62), Trim, .83f, .24f);
+            Add(TEXT("ParapetCaps"), FVector(Center.X, Center.Y + Side * (Size.Y * .5f - 15), Roof + 65),
+                FVector(Size.X + 12, 42, 7), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
+            Add(TEXT("ParapetCaps"), FVector(Center.X + Side * (Size.X * .5f - 15), Center.Y, Roof + 65),
+                FVector(42, Size.Y - 30, 7), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
         }
+        // Roof plant differs in silhouette from the earlier repeated three boxes.
+        const FVector PlantCenter(Center.X + Size.X * .20f, Center.Y + Size.Y * .14f, Roof + 60);
+        Add(TEXT("RoofMetal"), PlantCenter, FVector(250, 150, 104), Plant, .65f, .16f, FRotator::ZeroRotator, .4f);
+        Add(TEXT("ParapetCaps"), PlantCenter + FVector(0, 0, 56), FVector(268, 168, 8), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
+        Add(TEXT("RoofFanHousings"), PlantCenter + FVector(0, 0, 72), FVector(96, 96, 24), Oxide, .58f, .18f,
+            FRotator::ZeroRotator, .5f, 0.f, true);
+        for (int32 Slat = 0; Slat < 8; ++Slat)
+            Add(TEXT("WindowFrames"), PlantCenter + FVector(-103 + Slat * 29.f, -79, 0),
+                FVector(9, 7, 76), Frame, .58f, 0.f, FRotator::ZeroRotator, .32f);
+        Add(TEXT("RoofMetal"), FVector(Center.X - Size.X * .09f, PlantCenter.Y, Roof + 27),
+            FVector(Size.X * .48f, 90, 44), Plant, .65f, .16f, FRotator::ZeroRotator, .4f);
+        for (int32 Joint = 0; Joint < 4; ++Joint)
+            Add(TEXT("ParapetCaps"), FVector(Center.X - Size.X * .29f + Joint * Size.X * .13f, PlantCenter.Y, Roof + 51),
+                FVector(10, 102, 5), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
+        for (int32 Index = 0; Index < 2; ++Index) {
+            const FVector Skylight(Center.X - Size.X * .20f + Index * Size.X * .35f, Center.Y - Size.Y * .22f, Roof + 30);
+            Add(TEXT("ParapetCaps"), Skylight, FVector(200, 180, 44), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
+            Add(TEXT("RoofSkylights"), Skylight + FVector(0, 0, 30), FVector(182, 172, 10), Glass, .28f, 0.f,
+                FRotator(12, 0, 0), .18f, .03f);
+            for (int32 Mullion = 0; Mullion < 3; ++Mullion)
+                Add(TEXT("ParapetCaps"), Skylight + FVector(-62 + Mullion * 62.f, 0, 36),
+                    FVector(6, 184, 10), Frame, .59f, 0.f, FRotator(12, 0, 0), .42f);
+        }
+        const float PipeY = Center.Y - Size.Y * .34f;
+        Pipe(TEXT("RoofCopperPipes"), FVector(Center.X - Size.X * .40f, PipeY, Roof + 26),
+            FVector(Center.X + Size.X * .38f, PipeY, Roof + 26), 18, Copper);
+        for (int32 Support = 0; Support < 5; ++Support)
+            Add(TEXT("ParapetCaps"), FVector(Center.X - Size.X * .37f + Support * Size.X * .18f, PipeY, Roof + 13),
+                FVector(14, 50, 20), Frame, .59f, 0.f, FRotator::ZeroRotator, .42f);
     }
 };
 
@@ -275,11 +398,11 @@ void ABGOperation::BuildDistrict() {
         Block(World, FVector(-4400 + Index * 380.f, 3200, 35), FVector(60, 60, 70), Mark);
     // Original modular facade and flush street details: no collision, navigation, or save identity.
     FBlackglassDressing Dressing(World);
-    Dressing.Facade(FVector(-3750, -650, 270), FVector(1500, 1700, 540));
-    Dressing.Facade(FVector(-3700, 650, 200), FVector(1550, 550, 400));
-    Dressing.Facade(FVector(-3400, -3300, 210), FVector(2200, 600, 420));
-    Dressing.Facade(FVector(1500, -3250, 260), FVector(3100, 650, 520));
-    Dressing.Facade(FVector(200, 1250, 280), FVector(1200, 2200, 560));
+    Dressing.Facade(FVector(-3750, -650, 270), FVector(1500, 1700, 540), 1, TEXT("CIVIC LOGISTICS / SEALED"));
+    Dressing.Facade(FVector(-3700, 650, 200), FVector(1550, 550, 400), 0, TEXT("ALLOCATION SERVICES / SEALED"));
+    Dressing.Facade(FVector(-3400, -3300, 210), FVector(2200, 600, 420), 0, TEXT("DISTRICT SUPPLY / SEALED"));
+    Dressing.Facade(FVector(1500, -3250, 260), FVector(3100, 650, 520), 2, TEXT("MUNICIPAL COMPLIANCE / SEALED"));
+    Dressing.Facade(FVector(200, 1250, 280), FVector(1200, 2200, 560), 2, TEXT("PROCESS ANNEX / SEALED"));
     const FLinearColor Curb(.51f, .5f, .44f), Grate(.065f, .075f, .08f);
     const float CurbRows[] = { -3350.f, -2750.f, -700.f, 0.f, 700.f, 1400.f, 2950.f, 3500.f };
     for (float Y : CurbRows) for (float X : { -2205.f, -1195.f }) {
@@ -311,6 +434,70 @@ void ABGOperation::BuildDistrict() {
     Dressing.Add(TEXT("LaboratoryTrim"), FVector(3150, 2200, 244), FVector(1500, 48, 8), Curb, .88f);
     Dressing.Add(TEXT("LaboratoryTrim"), FVector(2580, 800, 244), FVector(360, 48, 8), Curb, .88f);
     Dressing.Add(TEXT("LaboratoryTrim"), FVector(3580, 800, 244), FVector(640, 48, 8), Curb, .88f);
+    // Flush street marks and paving joints retain the actual foundation routes.
+    const FLinearColor Joint(.13f, .15f, .15f), WornPaint(.49f, .48f, .39f), SignMetal(.10f, .12f, .13f);
+    for (float X : { -2450.f, -950.f }) for (int32 Tile = 0; Tile < 37; ++Tile)
+        Dressing.Add(TEXT("PavingJoints"), FVector(X, -3500 + Tile * 195.f, 24.7f), FVector(360, 2, .6f), Joint, .92f);
+    for (int32 Tile = 0; Tile < 48; ++Tile)
+        Dressing.Add(TEXT("PavingJoints"), FVector(-4500 + Tile * 190.f, -2500, 24.7f), FVector(2, 360, .6f), Joint, .92f);
+    for (float X : { -2375.f, -2525.f, -875.f, -1025.f })
+        Dressing.Add(TEXT("PavingJoints"), FVector(X, 0, 24.7f), FVector(2, 7250, .6f), Joint, .92f);
+    for (float Y : { -2575.f, -2425.f })
+        Dressing.Add(TEXT("PavingJoints"), FVector(0, Y, 24.7f), FVector(9250, 2, .6f), Joint, .92f);
+    for (float Y : { -2300.f, 850.f, 2850.f }) {
+        Dressing.Add(TEXT("LaneArrows"), FVector(-1440, Y, 15), FVector(24, 150, 2), WornPaint, .96f);
+        Dressing.Add(TEXT("LaneArrows"), FVector(-1465, Y + 82, 15), FVector(20, 75, 2), WornPaint, .96f, 0.f, FRotator(0, -45, 0));
+        Dressing.Add(TEXT("LaneArrows"), FVector(-1415, Y + 82, 15), FVector(20, 75, 2), WornPaint, .96f, 0.f, FRotator(0, 45, 0));
+    }
+    Dressing.Add(TEXT("LaneArrows"), FVector(-1930, -1400, 15), FVector(390, 22, 2), WornPaint, .96f);
+    Dressing.Add(TEXT("LaneArrows"), FVector(-770, -2035, 15), FVector(22, 390, 2), WornPaint, .96f);
+    for (int32 Stripe = 0; Stripe < 7; ++Stripe)
+        Dressing.Add(TEXT("LoadingPaint"), FVector(-3630 + Stripe * 160.f, -2360, 25), FVector(86, 12, 2), Mark, .95f);
+    // Decorative boundaries sit on top of existing solid walls, not in gate apertures.
+    Dressing.Add(TEXT("SignBackplates"), FVector(2700, -1032, 184), FVector(910, 14, 62), SignMetal, .71f, 0.f, FRotator::ZeroRotator, .25f);
+    Dressing.Label(TEXT("CALDER SYSTEMS // RESEARCH"), FVector(2700, -1042, 184), FRotator(0, -90, 0), 33);
+    Dressing.Label(TEXT("ACCESS 01"), FVector(1340, -1042, 192), FRotator(0, -90, 0), 23);
+    Dressing.Label(TEXT("SERVICE 02"), FVector(1068, 2110, 191), FRotator(0, 180, 0), 23);
+    for (float X : { 1215.f, 1350.f, 1485.f, 2010.f, 2170.f, 2330.f, 2490.f, 2650.f, 2810.f, 2970.f, 3130.f, 3290.f, 3450.f, 3610.f, 3770.f, 3930.f, 4090.f }) {
+        Dressing.Add(TEXT("PavingJoints"), FVector(X, -1026, 111), FVector(3, 3, 190), Joint, .92f);
+        Dressing.Add(TEXT("PerimeterSkirting"), FVector(X, -1030, 43), FVector(112, 7, 32), SignMetal, .8f, .18f, FRotator::ZeroRotator, .18f);
+    }
+    for (float Y : { -770.f, -410.f, -50.f, 310.f, 670.f, 1030.f, 1390.f, 1990.f, 2350.f })
+        Dressing.Add(TEXT("PavingJoints"), FVector(1074, Y, 120), FVector(3, 3, 220), Joint, .92f);
+    for (float X : { 1450.f, 2040.f, 3920.f })
+        Dressing.Add(TEXT("WarmFixtures"), FVector(X, -1038, 236), FVector(64, 18, 12),
+            FLinearColor(.72f, .63f, .40f), .4f, 0.f, FRotator::ZeroRotator, .15f, .45f);
+    // Light lab dressing shares the already colliding counter and wall footprints.
+    Dressing.Add(TEXT("LaboratoryInlays"), FVector(3150, 1500, 20.8f), FVector(1400, 1290, 1.5f), FLinearColor(.17f, .23f, .23f), .78f, .22f);
+    for (int32 Line = 0; Line < 7; ++Line)
+        Dressing.Add(TEXT("LabFloorJoints"), FVector(2490 + Line * 220.f, 1500, 21.8f), FVector(2, 1290, .5f), Joint, .9f);
+    for (int32 Line = 0; Line < 6; ++Line)
+        Dressing.Add(TEXT("LabFloorJoints"), FVector(3150, 945 + Line * 220.f, 21.8f), FVector(1400, 2, .5f), Joint, .9f);
+    Dressing.Add(TEXT("RoofMetal"), FVector(3450, 1650, 135), FVector(370, 95, 10), FLinearColor(.27f, .32f, .32f), .65f, .16f, FRotator::ZeroRotator, .4f);
+    for (int32 Terminal = 0; Terminal < 3; ++Terminal) {
+        const float X = 3325 + Terminal * 122.f;
+        Dressing.Add(TEXT("LabTerminalShells"), FVector(X, 1653, 178), FVector(94, 66, 76), SignMetal, .63f, .1f, FRotator::ZeroRotator, .3f);
+        Dressing.Add(TEXT("LabTerminalDisplays"), FVector(X, 1618, 186), FVector(75, 3, 48),
+            FLinearColor(.19f, .43f, .40f), .35f, 0.f, FRotator::ZeroRotator, .1f, .3f);
+        Dressing.Add(TEXT("LabTerminalShells"), FVector(X, 1610, 145), FVector(84, 24, 7), SignMetal, .63f, .1f, FRotator::ZeroRotator, .3f);
+    }
+    Dressing.Add(TEXT("RoofMetal"), FVector(2900, 1850, 119), FVector(188, 109, 18), FLinearColor(.27f, .32f, .32f), .65f, .16f, FRotator::ZeroRotator, .4f);
+    Dressing.Add(TEXT("LabTerminalShells"), FVector(2900, 1850, 168), FVector(155, 90, 82), SignMetal, .63f, .1f, FRotator::ZeroRotator, .3f);
+    Dressing.Add(TEXT("LabTerminalDisplays"), FVector(2900, 1803, 166), FVector(115, 4, 50),
+        FLinearColor(.19f, .43f, .40f), .35f, 0.f, FRotator::ZeroRotator, .1f, .3f);
+    Dressing.Label(TEXT("CALDER / PROTOTYPE CONTROL"), FVector(3150, 2170, 180), FRotator(0, -90, 0), 29);
+    // Thin rail tubes remain outside the bridge's walkable centerline.
+    const FLinearColor Rail(.32f, .37f, .37f);
+    for (float Y : { 2808.f, 3192.f }) {
+        Dressing.Pipe(TEXT("BridgeRails"), FVector(-1500, Y, 106), FVector(-250, Y, 406), 10, Rail, .65f);
+        Dressing.Pipe(TEXT("BridgeRails"), FVector(-250, Y, 406), FVector(1400, Y, 406), 10, Rail, .65f);
+        Dressing.Pipe(TEXT("BridgeRails"), FVector(1400, Y, 406), FVector(2650, Y, 106), 10, Rail, .65f);
+        for (int32 Post = 0; Post < 12; ++Post) {
+            const float X = -1420 + Post * 360.f;
+            const float DeckZ = X < -250 ? (X + 1500) * .24f : X > 1400 ? (2650 - X) * .24f : 300.f;
+            Dressing.Pipe(TEXT("BridgeRails"), FVector(X, Y, DeckZ + 20), FVector(X, Y, DeckZ + 105), 10, Rail, .65f);
+        }
+    }
     UE_LOG(LogTemp, Log, TEXT("BLACKGLASS original visual dressing: %d instances in %d material batches; collision disabled."),
         Dressing.Instances, Dressing.Batches.Num());
     if (ADirectionalLight* Sun = World->SpawnActor<ADirectionalLight>(FVector(0, 0, 2000), FRotator(-55, -35, 0))) {

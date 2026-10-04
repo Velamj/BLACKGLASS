@@ -1,47 +1,39 @@
 # BLACKGLASS
 
-Original real-time isometric corporate tactics for offline Windows PC. The 1993 PC Syndicate is the mechanics benchmark; all project characters, writing and artwork are original or properly licensed. BLACKGLASS is a working title.
+Original real-time isometric corporate tactics for offline Windows PC. The 1993 PC Syndicate is the gameplay benchmark; project characters, writing and artwork are original or properly licensed. BLACKGLASS is a working title.
 
-**Milestone 1 is a tested native Unreal foundation. It preserves four-operative selection and real-time orders, with a true orthographic camera. Its procedural buildings and characters remain placeholder art and do not meet the polished vertical-slice target.**
+**Milestone 1 is a tested native Unreal foundation. The current graphics pass adds industrial facades, original shaped character/van meshes, a classic orthographic isometric angle, thin selection rings and controlled-operative silhouettes. Production art, final rigs/audio and the polished vertical slice remain unfinished.**
 
-Development source: [blackglass/milestone-1](https://github.com/Velamj/BLACKGLASS/tree/blackglass/milestone-1). Review: [draft PR #1](https://github.com/Velamj/BLACKGLASS/pull/1).
+Source: [blackglass/milestone-1](https://github.com/Velamj/BLACKGLASS/tree/blackglass/milestone-1). Review: [draft PR #1](https://github.com/Velamj/BLACKGLASS/pull/1).
 
 ## Build and play
 
-On Windows with Unreal Engine 5.8.3, supported MSVC and the Windows SDK, run from this repository:
+On Windows with the verified Unreal Engine 5.8.3, MSVC and Windows SDK, run from this checkout:
 
 ~~~powershell
 powershell -ExecutionPolicy Bypass -File Scripts/Build-Native.ps1 -Mode Editor
 powershell -ExecutionPolicy Bypass -File Scripts/Launch-Foundation.ps1
 ~~~
 
-For the tested Development Windows archive:
+To package and launch: run `Scripts/Build-Native.ps1 -Mode Package`, then `Scripts/Launch-Packaged.ps1`. The project is `BLACKGLASS.uproject`, map `/Game/Maps/DepotBlock`; the local packaged launcher is `Artifacts/Windows/Blackglass.exe`. Keep its complete archive together. [Build and asset-generation instructions](Docs/BUILD.md).
 
-~~~powershell
-powershell -ExecutionPolicy Bypass -File Scripts/Build-Native.ps1 -Mode Package
-powershell -ExecutionPolicy Bypass -File Scripts/Launch-Packaged.ps1
-~~~
+Select with 1–4 or Space; right-click to move/interact/attack; Shift queues orders. P pauses, E boards/exits, H holsters, V switches weapons, F5/F9 save/load, F8 restarts. Acquire Iona Vale and extract her with every survivor for one 6,000-credit reward. [Complete controls](Docs/CONTROLS.md).
 
-The editor project is BLACKGLASS.uproject; the map is /Game/Maps/DepotBlock. The local packaged launcher is Artifacts/Windows/Blackglass.exe. Select with 1–4 or Space; right-click to move/interact/attack; Shift queues orders. P pauses, E boards/exits, H holsters, V switches weapons, F5/F9 save/load, F8 restarts. [Complete controls](Docs/CONTROLS.md).
+## Actual current evidence
 
-Acquire Iona Vale inside the facility and extract her with every living operative. Four agents, two weapons, local civilians/security, an interactive van, obstruction-aware combat, mission outcomes and native persistence are implemented. This specialist uses a contextual escort; neural override is pending.
+![Actual Package07 Unreal game viewport at 1920 × 1080](Docs/Evidence/package07-district.png)
 
-## Actual evidence
+Package07 built successfully in 42.91 seconds and launched at a physically measured 1920 × 1080. Its cooked assets were independently listed. The screenshot is an unchanged capture from the native game viewport with 32 render warmup frames; it is not concept art or a physical-input playthrough.
 
-The focused Unreal scenario Blackglass.Foundation.Runtime passed in 116.17 seconds with zero errors and one documented navigation initialization warning. Final Windows packaging succeeded. Ordinary controls completed the foot mission in Package04; final Package05 verified rendering, four-operative boarding/travel/exit and won-state save/load without duplicate rewards. These are separate headless, packaged and ordinary-input checks, not claims about campaign completeness.
+The native integration scenario passed in 115.85 seconds with zero errors and the existing documented navigation initialization warning. Nine new outline-state checks cover selection, vehicles, casualties, disk load and restart while excluding NPCs. The final cloth/ring refinement and corrected static sign placement are included in this passing run. These checks preserve the real-time four-operative gameplay; they do not prove final presentation or every physical binding.
 
-![Actual Package05 foundation at 1920 × 1080](Docs/Evidence/package05-district.png)
+The Windows test desktop's active screensaver currently blocks new ordinary-input, occluded-selection and representative visible-window performance checks. Previous Package04/05 playthrough/control results and Package05's 88.44 FPS idle measurement remain historical. No current 60 FPS claim is made. [Verification and limits](Docs/VERIFICATION.md).
 
-The visual pass adds original concrete/asphalt textures, a material graph, instanced building/street detail, articulated coat silhouettes and readable HUD labels. Production models, rigs, audio, roof cutaways and stronger environment art remain pending. [Actual won-state load](Docs/Evidence/package05-won-save-load.png) retains the earlier ordinary-control mission result.
-
-The final package completed two 10,000-frame captures and exited cleanly at a measured physical 1920 × 1080. The second capture averaged 11.31 ms per frame (about 88.44 FPS), with 12.14 ms p95 and a 59.71 ms worst frame. This unpaused idle district contained 17 units, one van and two doors on a Core Ultra 7 258V / integrated Arc 140V system. The supported synchronous CSV profiler avoids an observed engine capture-worker shutdown fault; its overhead is included. Heavy combat and full-mission performance remain unmeasured. [Measured performance](Docs/PERFORMANCE.json).
-
-- [Verification and acceptance status](Docs/VERIFICATION.md).
-- [Status, defects and next bounded step](Docs/STATUS.md).
-- [Build, content-generation and profiling instructions](Docs/BUILD.md).
+- [Status and next bounded checks](Docs/STATUS.md).
+- [Historical measured performance](Docs/PERFORMANCE.json).
 - [Fidelity ledger](Docs/FIDELITY_LEDGER.md).
-- [Asset sources, licenses and placeholders](Docs/ASSET_MANIFEST.md).
-- [Verified editor bridge setup](Docs/UNREAL_MCP.md).
+- [Asset sources, licenses and placeholder status](Docs/ASSET_MANIFEST.md).
+- [Verified editor bridge](Docs/UNREAL_MCP.md).
 - [Full seven-part master brief](Docs/MASTER_BRIEF.md).
 
-Hostile Acquisition, the ten-operation campaign alpha and eventual 50-territory authored campaign remain in scope. Neural systems, cybernetics, research, economy, rival strategy and campaign progression are not implemented or counted complete. The portable simulation remains a separate test fixture; native Unreal actor state owns the running game.
+Hostile Acquisition, the ten-operation alpha and eventual 50-territory authored campaign remain in scope. Neural systems, cybernetics, research, economy, rivals and a subsequent operation are not implemented or counted complete. Native Unreal actor state owns gameplay; the portable simulation is a separate test fixture.

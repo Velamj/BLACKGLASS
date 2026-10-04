@@ -1,6 +1,33 @@
-# Verification evidence — updated 2026-10-03
+# Verification evidence — updated 2026-10-04
 
-## Current native runtime result
+## Current graphics pass
+
+- Final editor build04: Unreal 5.8.3, native compile/link succeeded, exit 0, 7.80 seconds.
+- Asset build06: exit 0, 13.52 seconds; original material/outline graph validation and all 13 mesh imports passed. The four wear/normal imports have portable metadata; asset privacy checks reported no private absolute user paths. Original foundation assets remain preserved.
+- Actual `Blackglass.Foundation.Runtime`: Success in 115.851952 seconds, native process and report-gated runner exit 0, 0 failed/0 not run/0 in process, no error events and the existing CrowdFollowing initialization warning. New outline properties are checked at nine state transitions through ordinary world ticks; NPCs and selection-ring meshes are excluded. The final cloth colors, annulus and corrected static sign placement are included in this passing run; no gameplay rules changed.
+- Package07: Win64 Development BuildCookRun succeeded, exit 0, 42.91 seconds. Archive 48 files/957,441,458 bytes excluding runtime Saved output. Native executable and cooked identities are in [PACKAGE07.json](PACKAGE07.json).
+- Actual native package launched `/Game/Maps/DepotBlock`; physical client measured 1920×1080. Runtime queries reported 17 units, one van and two doors. UnrealPak's successful IoStore listing independently confirmed 13 original meshes, both new materials, all four wear/normal textures and the map. No missing surface-usage/default-material or original-mesh-fallback warning was observed in the inspected launch log.
+- [Actual packaged render](Evidence/package07-district.png): original industrial facades/roof dressing/paving, shaped characters, thin selection rings, classic isometric framing and compact HUD. Capture source is the native game viewport using `HighResShot 1920x1080` with `r.HighResScreenshotDelay 32`; PNG bytes unchanged. SHA256 `d26d1bc8ebfacde355fcedbf8601bef66abac550302e7278a6eb709300380f68`.
+
+Local evidence paths, relative to the canonical BLACKGLASS checkout:
+
+- `Saved/Verification/graphics-editor-build04.log`
+- `Saved/Verification/graphics-assets-06.log` and material/outline/character JSON reports
+- `Saved/Automation/graphics-runtime-02-20261004T211412Z/index.json`
+- `Saved/Verification/graphics-runtime-02-20261004T211412Z.summary.json`
+- `Saved/Verification/graphics-package07.log`, `graphics-package07-cooked-list.log`, `graphics-package07-launch.engine.log`, `graphics-package07-summary.json`
+- `Artifacts/Windows/Blackglass.exe` bootstrap and `Artifacts/Windows/BLACKGLASS/Binaries/Win64/Blackglass.exe` native game; previous package retained at `Artifacts/Windows-Foundation05`
+
+The first runtime pass succeeded with 14 static-sign-placement warnings as well as the existing navigation warning. Setting static sign transforms before registration removed all 14 placement warnings; the final runtime pass retains only the documented navigation initialization warning. Earlier asset attempts failed while replacing rooted textures or clearing a rooted outline graph. Failed exits remain recorded locally. The corrected pipeline uses new owned asset names and caches unchanged owned imports/graphs; later complete asset builds exited 0. These fixes do not imply earlier attempts succeeded.
+
+## Current review blocker and limits
+
+The Windows input desktop reported an active screensaver; the project-bound input helper could not focus the packaged game (foreground PID 0) and sent no input. Engine viewport captures permitted actual render inspection while foreground access remained unavailable. New physical mouse/keyboard selection, through-building picks, boarded/dead outline visuals, camera rotation/zoom limits, 720p layout and a representative visible-window benchmark remain pending. The inherited gameplay tests establish their specific state contracts; property checks alone do not prove hidden-outline pixels. Static sign placement warnings were corrected; lettering now appears in the deployment capture, but its small dark text needs a readability review.
+
+The current scene is interim foundation art and does not establish the original-game presentation benchmark. No new performance measurement or 60 FPS claim is made. The previous 88.44 FPS package05 capture below remains historical and is marked as such in PERFORMANCE.json. The current screenshot documents the displayed game render.
+
+
+## Historical native foundation result (2026-10-03)
 
 **The native foundation passed one actual runtime integration scenario. The revised Windows package built, launched and passed ordinary group vehicle controls and save/load checks; an earlier package completed the mission through ordinary controls. The final package also completed a measured 1080p foundation-scene run with clean shutdown using a supported CSV-profiler workaround.**
 
@@ -45,7 +72,7 @@ The passing run's local evidence is:
 
 Raw reports and captures remain in ignored local output; private machine identifiers, filesystem listings and diagnostic metadata are not published. The recorded result applies to the locally compiled source used for that run; it is not a claim that GitHub CI built Unreal.
 
-## Revised Windows package result
+## Historical Package05 result
 
 Final archive 05 completed actual Windows Development packaging with UAT exit 0 in **64.54 seconds**, cooking the original textures, material, map, data and configuration. Its native game launched at a physically verified **1920×1080**. The revised palette, material surfaces, district dressing, operative coats and interface were inspected in the running game.
 
@@ -141,4 +168,4 @@ That historical probe proves the pinned Node server speaks MCP. The current nati
 
 ## Next bounded checks
 
-Implement foreground occlusion and agent outlines, then continue the bounded Milestone 2 work for functional neural controls and alternate mission approaches. Retain the separate native, ordinary-control and rendered-game evidence; each supports its specific claims. Measure combat and full-mission performance when those systems and content are ready. Keep remaining fidelity gaps explicit in [FIDELITY_LEDGER.md](FIDELITY_LEDGER.md). Milestones 2–4 and all seven parts of [MASTER_BRIEF.md](MASTER_BRIEF.md) remain in scope.
+Complete the current physical-input/occluded-outline and visible-window benchmark checks, then continue the bounded Milestone 2 work for functional neural controls and alternate mission approaches. Retain the separate native, ordinary-control and rendered-game evidence; each supports its specific claims. Measure combat and full-mission performance when those systems and content are ready. Keep remaining fidelity gaps explicit in [FIDELITY_LEDGER.md](FIDELITY_LEDGER.md). Milestones 2–4 and all seven parts of [MASTER_BRIEF.md](MASTER_BRIEF.md) remain in scope.

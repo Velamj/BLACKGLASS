@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -25,6 +26,9 @@ class FBGFoundationScenario final : public IAutomationLatentCommand {
  FVector VehicleStart, BoardingEdgeStart, BoardingClearGoal;
  float BoardingEdgeTravel = 0;
  int32 PausePhase = 0, PausedAmmo = 0, ExtractionPhase = 0, BoardingEdgePhase = 0;
+ int32 SelectionOutlinePhase = 0, RestartOutlinePhase = 0;
+ float OutlineChangedAt = 0, GroupSeatedAt = -1;
+ bool CheckpointOutlinePending = false;
  float PausedHealth = 0, PausedSimulation = 0;
  double PauseBegan = 0;
  bool Failed = false;
@@ -88,6 +92,31 @@ class FBGFoundationScenario final : public IAutomationLatentCommand {
     Op->RestoreOperation(Original.Get());
    }
   return true;
+ }
+ bool VerifyOutlineState(ABGOperation* Op, const TArray<int32>& ActiveIds,
+  const TArray<int32>& SelectedIds, const TCHAR* State) {
+  auto* Commander=Cast<ABGCommander>(UGameplayStatics::GetPlayerController(Op,0));
+  bool SelectionMatches=Commander && Commander->Selected.Num()==SelectedIds.Num();
+  for(int32 Id : SelectedIds) SelectionMatches &= Commander && Commander->Selected.Contains(Op->FindUnit(Id));
+  Check(SelectionMatches,FString(State)+TEXT(": authoritative selection matches the fixture"));
+  int32 ActiveUnits=0;
+  for(ABGUnit* Unit : Op->Units) if(IsValid(Unit)) {
+   const bool ExpectedActive=ActiveIds.Contains(Unit->EntityId);
+   bool Matches=!Unit->Parts.IsEmpty(), HasBody=false;
+   for(UStaticMeshComponent* Part : Unit->Parts) if(IsValid(Part)) {
+    const bool Body=Part!=Unit->SelectionRing && Part->IsVisible();
+    if(ExpectedActive && Body) {
+     HasBody=true;
+     Matches &= Part->bRenderCustomDepth &&
+      Part->CustomDepthStencilValue==(SelectedIds.Contains(Unit->EntityId) ? 2 : 1);
+    } else Matches &= !Part->bRenderCustomDepth;
+   }
+   if(ExpectedActive) { ++ActiveUnits; Matches &= HasBody && Unit->UnitRole==EBGRole::Operative; }
+   Check(Matches,FString::Printf(TEXT("%s: entity %d has the expected owned-body outline state; marker excluded"),
+    State,Unit->EntityId));
+  }
+  Check(ActiveUnits==ActiveIds.Num(),FString(State)+TEXT(": all expected owned entities exist"));
+  return !Failed;
  }
  bool VerifyCheckpoint(ABGOperation* Op) {
   Check(Op->Units.Num()==Checkpoint->Units.Num(),TEXT("Load restores the same entity count"));
@@ -156,6 +185,25 @@ public:
   }
   case 1: {
    if (!Near(Op,1,FVector(-3500,-2150,20))) return Expired(Op,15,TEXT("individual navigation order"));
+   // Selection presentation must settle through ordinary controller/world ticks.
+   if(SelectionOutlinePhase==0) {
+    if(!VerifyOutlineState(Op,{1,2,3,4},{1,2,3,4},TEXT("Group selection after walking"))) return Finish(true);
+    Commander->SelectNumber(0);
+    OutlineChangedAt=Op->GetWorld()->GetTimeSeconds(); SelectionOutlinePhase=1;
+    return false;
+   }
+   if(SelectionOutlinePhase==1) {
+    if(Op->GetWorld()->GetTimeSeconds()-OutlineChangedAt<.1f) return false;
+    if(!VerifyOutlineState(Op,{1,2,3,4},{1},TEXT("Individual selection after world ticks"))) return Finish(true);
+    Commander->SelectAll();
+    OutlineChangedAt=Op->GetWorld()->GetTimeSeconds(); SelectionOutlinePhase=2;
+    return false;
+   }
+   if(SelectionOutlinePhase==2) {
+    if(Op->GetWorld()->GetTimeSeconds()-OutlineChangedAt<.1f) return false;
+    if(!VerifyOutlineState(Op,{1,2,3,4},{1,2,3,4},TEXT("Group reselection after world ticks"))) return Finish(true);
+    SelectionOutlinePhase=3;
+   }
    Check(FVector::Dist2D(Op->FindUnit(1)->GetActorLocation(),StartLocations[0])>350,TEXT("Individual movement advances through actual world ticks"));
    for(int32 Id=2;Id<=4;++Id)
     Check(FVector::Dist2D(Op->FindUnit(Id)->GetActorLocation(),StartLocations[Id-1])<80,TEXT("Unordered operatives hold their positions"));
@@ -254,10 +302,22 @@ public:
    return false;
   }
   case 5: {
+   if(CheckpointOutlinePending) {
+    if(Op->GetWorld()->GetTimeSeconds()-OutlineChangedAt<.1f) return false;
+    if(!VerifyOutlineState(Op,{1,3},{2},TEXT("Disk load excludes the seated driver and casualty after ticks"))) return Finish(true);
+    CheckpointOutlinePending=false;
+    Check(Op->RestoreOperation(Original.Get()),TEXT("The test resets its fixture without resurrecting a campaign casualty"));
+    QuietFixtures(Op);
+    Move(Op,1,FVector(1750,-1450,20));
+    Move(Op,3,FVector(575,3000,312));
+    Next(Op,TEXT("Occupancy, active reload, casualty, queued orders, barrier state, safe save/load and owned-body exclusion passed; walking the actual mission route."));
+    return false;
+   }
    if(Op->Vehicle->bMoving) return Expired(Op,15,TEXT("vehicle movement and stopping"));
    if(!Check(FVector::Dist2D(Op->Vehicle->GetActorLocation(),VehicleStart)>600 &&
     FVector::Dist2D(Op->Vehicle->GetActorLocation(),FVector(-1700,-1800,20))<180,
     TEXT("The vehicle actually follows its street route"))) return Finish(true);
+   if(!VerifyOutlineState(Op,{1,3},{1},TEXT("Moving save restored; seated operative and casualty stay excluded"))) return Finish(true);
    if(!Check(Op->Vehicle->Exit(Op->FindUnit(2)),TEXT("A stopped vehicle provides a collision-clear navigable exit"))) return Finish(true);
    Check(Op->FindUnit(2)->VehicleId==0 && Op->Vehicle->Occupants[0]==0,TEXT("Exiting clears both seat relationships"));
    if(!Check(Op->Vehicle->Board(Op->FindUnit(2)),TEXT("The same operative can reboard safely"))) return Finish(true);
@@ -283,15 +343,13 @@ public:
    Check(!Op->LoadOperation(Slot),TEXT("A damaged native save is rejected"));
    VerifyCheckpoint(Op);
    Check(FPaths::FileExists(SavePath+TEXT(".previous")),TEXT("A previous valid save remains available"));
-   Check(Op->RestoreOperation(Original.Get()),TEXT("The test resets its fixture without resurrecting a campaign casualty"));
-   QuietFixtures(Op);
-   Move(Op,1,FVector(1750,-1450,20));
-   Move(Op,3,FVector(575,3000,312));
-   Next(Op,TEXT("Occupancy, active reload, casualty, queued orders, barrier state and safe save/load passed; walking the actual mission route."));
+   CheckpointOutlinePending=true; OutlineChangedAt=Op->GetWorld()->GetTimeSeconds();
+   Test->AddInfo(TEXT("Representative save restored a selected driver and a dead operative; waiting for ordinary outline cleanup ticks."));
    return false;
   }
   case 6: {
    if(!Near(Op,1,FVector(1750,-1450,20))) return Expired(Op,35,TEXT("walking from deployment to the facility"));
+   if(!VerifyOutlineState(Op,{1,2,3,4},Original->SelectedIds,TEXT("Restored on-foot bodies recover their selection outline after navigation"))) return Finish(true);
    FBGOrder Open; Open.Type=EBGOrderType::Interact; Open.TargetId=700;
    Op->FindUnit(1)->IssueOrder(Open,false);
    Next(Op,TEXT("The escort operative reached the facility through navigation, without teleportation."));
@@ -388,11 +446,17 @@ public:
   }
   case 11: {
    if(Op->GetWorld()==RestartedWorld.Get()) return Expired(Op,30,TEXT("restart level transition"));
-   Check(Op->Outcome==EBGOutcome::Active && Op->Units.Num()==17 && Op->Credits==0 &&
-    !Op->bRewardSettled && Op->Specialist->Alive(),TEXT("The restart control creates a fresh playable operation"));
-   QuietFixtures(Op);
-   Commander=Cast<ABGCommander>(UGameplayStatics::GetPlayerController(Op,0));
-   Commander->SelectAll();
+   if(RestartOutlinePhase==0) {
+    Check(Op->Outcome==EBGOutcome::Active && Op->Units.Num()==17 && Op->Credits==0 &&
+     !Op->bRewardSettled && Op->Specialist->Alive(),TEXT("The restart control creates a fresh playable operation"));
+    QuietFixtures(Op);
+    Commander=Cast<ABGCommander>(UGameplayStatics::GetPlayerController(Op,0));
+    Commander->SelectAll();
+    OutlineChangedAt=Op->GetWorld()->GetTimeSeconds(); RestartOutlinePhase=1;
+    return false;
+   }
+   if(Op->GetWorld()->GetTimeSeconds()-OutlineChangedAt<.1f) return false;
+   if(!VerifyOutlineState(Op,{1,2,3,4},{1,2,3,4},TEXT("Fresh restart after ordinary outline initialization ticks"))) return Finish(true);
    StartLocations.Reset();
    for(int32 Id=1;Id<=4;++Id) {
     StartLocations.Add(Op->FindUnit(Id)->GetActorLocation());
@@ -407,6 +471,9 @@ public:
    bool AllSeated=true;
    for(int32 Id=1;Id<=4;++Id) AllSeated &= Op->FindUnit(Id)->VehicleId==600;
    if(!AllSeated) return Expired(Op,25,TEXT("all four default deployed operatives boarding through real group orders"));
+   if(GroupSeatedAt<0) { GroupSeatedAt=Op->GetWorld()->GetTimeSeconds(); return false; }
+   if(Op->GetWorld()->GetTimeSeconds()-GroupSeatedAt<.1f) return false;
+   if(!VerifyOutlineState(Op,{}, {1,2,3,4},TEXT("All four seated bodies leave the outline pass after ordinary ticks"))) return Finish(true);
    TSet<int32> Seats;
    for(int32 Id=1;Id<=4;++Id) {
     ABGUnit* Unit=Op->FindUnit(Id);
@@ -431,6 +498,7 @@ public:
    ABGUnit* Edge=Op->FindUnit(4);
    if(BoardingEdgePhase==-1) {
     if(!Near(Op,1,BoardingClearGoal)) return Expired(Op,12,TEXT("the exited operative walking clear of the boundary boarding ray"));
+    if(!VerifyOutlineState(Op,{1,2,3,4},{1,2,3,4},TEXT("Group disembarking restores owned-body outlines through real navigation ticks"))) return Finish(true);
     auto* Nav=FNavigationSystem::GetCurrent<UNavigationSystemV1>(Op->GetWorld());
     FNavLocation Ground;
     const FVector Fixture=Op->Vehicle->GetActorLocation()+FVector(329.9,0,-90);
@@ -480,7 +548,7 @@ public:
     TEXT("The boundary operative disembarks with its seat released"));
    for(ABGUnit* Unit : Op->Units) if(Unit) Unit->SetActorTickEnabled(true);
    Check(Op->RestoreOperation(Original.Get()),TEXT("The controlled boarding fixture returns to the original active operation"));
-   Test->AddInfo(TEXT("Native runtime scenario complete, including four-operative group boarding and the real height-sensitive approach. This is not rendering, performance, packaging or manual-control evidence."));
+   Test->AddInfo(TEXT("Native runtime scenario complete, including four-operative group boarding, the real height-sensitive approach and operative-only outline state across selection, casualties, vehicles, disk load and restart. Outline assertions inspect runtime properties; they are not shader, rendering, performance, packaging or manual-control evidence."));
    return Finish(false);
   }
   default: return Finish(true);

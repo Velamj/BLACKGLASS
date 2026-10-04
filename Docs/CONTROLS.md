@@ -1,6 +1,6 @@
 # Foundation controls
 
-These bindings are implemented for the native Windows foundation in `BLACKGLASS.uproject`, map `/Game/Maps/DepotBlock`. The pre-visual Package04 completed the escort mission through ordinary controls: the specialist and all four living operatives reached extraction and received the 6,000-credit reward. F5/F9 also restored a won state without duplicating the reward; abort/restart and a four-operative van trip were exercised. The F5/F9 regression retained normal lit rendering at a measured 1920x1080 client size. Package05's actual darker palette and HUD were subsequently reviewed at 1920x1080. Fresh ordinary controls boarded all four operatives, made a short van trip and disembarked them; loading the prior won mission and another F5/F9 round trip retained the 6,000-credit reward and full extraction state with clean lighting. These Package05 checks do not represent a new full mission completion. The bounded Package05 idle-district benchmark passed at approximately 88.44 FPS average; full-mission and heavy-combat performance remain unmeasured. See [PERFORMANCE.json](PERFORMANCE.json) for settings and limits. Read [VERIFICATION.md](VERIFICATION.md) for the latest actual results and the tested subset of controls; source inspection or a headless runtime test does not verify every binding below.
+These bindings are implemented for the native Windows foundation in `BLACKGLASS.uproject`, map `/Game/Maps/DepotBlock`. Earlier Packages04/05 received the ordinary-input checks recorded in [VERIFICATION.md](VERIFICATION.md). The current graphics pass preserves those bindings, but its new art and through-building selection require a fresh ordinary-input review. Headless integration checks verify authoritative state and do not verify every physical binding.
 
 Launch with [BUILD.md](BUILD.md). The squad is selected and centered once when a new operation starts. Later deselection and loaded selections are preserved.
 
@@ -55,7 +55,7 @@ Personal weapons cannot be fired while seated. The foundation has no mounted veh
 | Left-click the minimap interior | Move the camera to that district location. |
 | P | Toggle tactical pause. |
 
-The default camera is truly orthographic with the classic three-quarter angle. Selection, camera controls, orders and saving remain available while paused. Orders execute when simulation resumes.
+The default camera is truly orthographic at the classic 35.264-degree isometric pitch. Living controlled operatives on foot receive silhouette outlines through foreground geometry; selected operatives are brighter. Click near the visible head-to-foot silhouette to select an obscured operative. This outline does not expose NPCs or replace missing roof/floor cutaways. Selection, camera controls, orders and saving remain available while paused. Orders execute when simulation resumes.
 
 **Disembarking requires real-time simulation:** release tactical pause with P, then press E again. Boarding orders may be issued while paused and execute after resuming. Pausing also stops the mission timer and autosave interval; closing the game does not advance this operation.
 

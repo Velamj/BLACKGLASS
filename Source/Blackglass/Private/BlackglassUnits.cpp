@@ -18,13 +18,38 @@
 namespace {
 UMaterialInterface* CorporateSurface() {
  static ConstructorHelpers::FObjectFinder<UMaterialInterface> Surface(
-  TEXT("/Game/Materials/M_BlackglassSurface.M_BlackglassSurface"));
+  TEXT("/Game/Materials/M_BGIndustrialSurface.M_BGIndustrialSurface"));
  static bool Warned = false;
  if (!Surface.Object && !Warned) {
   UE_LOG(LogTemp, Warning, TEXT("BLACKGLASS authored surface material is missing; primitive material fallback is a placeholder."));
   Warned = true;
  }
  return Surface.Object;
+}
+enum class EBGArtMesh : uint8 { Torso, Tail, Head, Collar, Leg, Sleeve, Hair, Boot, Trim, VanBody, VanCabin, Tire, SelectionAnnulus };
+UStaticMesh* OriginalVisualMesh(EBGArtMesh Kind, UStaticMesh* Fallback) {
+ // Authored beveled lofts replace the prototype cubes. Collision remains on the capsule/hull.
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Torso(TEXT("/Game/Characters/SM_BG_TailoredTorso.SM_BG_TailoredTorso"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Tail(TEXT("/Game/Characters/SM_BG_CoatTail.SM_BG_CoatTail"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Head(TEXT("/Game/Characters/SM_BG_Head.SM_BG_Head"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Collar(TEXT("/Game/Characters/SM_BG_Collar.SM_BG_Collar"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Leg(TEXT("/Game/Characters/SM_BG_TrouserLeg.SM_BG_TrouserLeg"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Sleeve(TEXT("/Game/Characters/SM_BG_Sleeve.SM_BG_Sleeve"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Hair(TEXT("/Game/Characters/SM_BG_Hair.SM_BG_Hair"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Boot(TEXT("/Game/Characters/SM_BG_Boot.SM_BG_Boot"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Trim(TEXT("/Game/Characters/SM_BG_BevelTrim.SM_BG_BevelTrim"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> VanBody(TEXT("/Game/Characters/SM_BG_VanBody.SM_BG_VanBody"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> VanCabin(TEXT("/Game/Characters/SM_BG_VanCabin.SM_BG_VanCabin"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> Tire(TEXT("/Game/Characters/SM_BG_Tire.SM_BG_Tire"));
+ static ConstructorHelpers::FObjectFinder<UStaticMesh> SelectionAnnulus(TEXT("/Game/Characters/SM_BG_SelectionAnnulus.SM_BG_SelectionAnnulus"));
+ UStaticMesh* Meshes[] = {Torso.Object,Tail.Object,Head.Object,Collar.Object,Leg.Object,Sleeve.Object,
+  Hair.Object,Boot.Object,Trim.Object,VanBody.Object,VanCabin.Object,Tire.Object,SelectionAnnulus.Object};
+ UStaticMesh* Mesh = Meshes[static_cast<uint8>(Kind)];
+ if (!Mesh) {
+  static bool Warned = false;
+  if (!Warned) { UE_LOG(LogTemp, Warning, TEXT("BLACKGLASS authored character meshes are missing; run Import-Character-Meshes.py.")); Warned = true; }
+ }
+ return Mesh ? Mesh : Fallback;
 }
 void ColorPart(UStaticMeshComponent* Part, const FLinearColor& Color, float Roughness = .8f) {
  if (!Part) return;
@@ -80,35 +105,44 @@ ABGUnit::ABGUnit() {
   Parts.Add(Component);
   return Component;
  };
- Part(TEXT("CoatTorso"), Cube.Object, FVector(0, 0, 12), FVector(.30f, .40f, .70f));
- Part(TEXT("CoatSkirt"), Cube.Object, FVector(-3, -12, -41), FVector(.28f, .21f, .58f));
- Part(TEXT("Head"), Cube.Object, FVector(0, 0, 70), FVector(.20f, .22f, .28f));
- Part(TEXT("Collar"), Cube.Object, FVector(-2, 0, 50), FVector(.24f, .30f, .14f));
- LeftLeg = Part(TEXT("LeftLeg"), Cube.Object, FVector(0, -11, -62), FVector(.17f, .16f, .44f));
- RightLeg = Part(TEXT("RightLeg"), Cube.Object, FVector(0, 11, -62), FVector(.17f, .16f, .44f));
- LeftArm = Part(TEXT("LeftArm"), Cube.Object, FVector(0, -27, 7), FVector(.14f, .14f, .56f));
- RightArm = Part(TEXT("RightArm"), Cube.Object, FVector(0, 27, 7), FVector(.14f, .14f, .56f));
- WeaponMesh = Part(TEXT("Weapon"), Cube.Object, FVector(28, 25, 8), FVector(.38f, .09f, .11f));
- Part(TEXT("CorporateBadge"), Cube.Object, FVector(17, -13, 23), FVector(.025f, .10f, .06f));
- SelectionRing = Part(TEXT("SelectionMarker"), Cylinder.Object, FVector(0, 0, -87), FVector(.88f, .88f, .012f));
+ Part(TEXT("CoatTorso"), OriginalVisualMesh(EBGArtMesh::Torso, Cube.Object), FVector(0, 0, 12), FVector(.30f, .40f, .70f));
+ Part(TEXT("CoatSkirt"), OriginalVisualMesh(EBGArtMesh::Tail, Cube.Object), FVector(-3, -12, -41), FVector(.28f, .21f, .58f));
+ Part(TEXT("Head"), OriginalVisualMesh(EBGArtMesh::Head, Cube.Object), FVector(0, 0, 70), FVector(.20f, .22f, .28f));
+ Part(TEXT("Collar"), OriginalVisualMesh(EBGArtMesh::Collar, Cube.Object), FVector(-2, 0, 50), FVector(.24f, .30f, .14f));
+ LeftLeg = Part(TEXT("LeftLeg"), OriginalVisualMesh(EBGArtMesh::Leg, Cube.Object), FVector(0, -11, -62), FVector(.17f, .16f, .44f));
+ RightLeg = Part(TEXT("RightLeg"), OriginalVisualMesh(EBGArtMesh::Leg, Cube.Object), FVector(0, 11, -62), FVector(.17f, .16f, .44f));
+ LeftArm = Part(TEXT("LeftArm"), OriginalVisualMesh(EBGArtMesh::Sleeve, Cube.Object), FVector(0, -27, 7), FVector(.14f, .14f, .56f));
+ RightArm = Part(TEXT("RightArm"), OriginalVisualMesh(EBGArtMesh::Sleeve, Cube.Object), FVector(0, 27, 7), FVector(.14f, .14f, .56f));
+ WeaponMesh = Part(TEXT("Weapon"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(28, 25, 8), FVector(.38f, .09f, .11f));
+ Part(TEXT("CorporateBadge"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(17, -13, 23), FVector(.025f, .10f, .06f));
+ SelectionRing = Part(TEXT("SelectionMarker"), OriginalVisualMesh(EBGArtMesh::SelectionAnnulus,Cylinder.Object), FVector(0, 0, -87), FVector(.88f, .88f, .012f));
  SelectionRing->SetVisibility(false);
  SelectionRing->SetCastShadow(false);
- Part(TEXT("LeftShoulder"), Cube.Object, FVector(-2,-24,39), FVector(.26f,.14f,.17f));
- Part(TEXT("RightShoulder"), Cube.Object, FVector(-2,24,39), FVector(.26f,.14f,.17f));
- Part(TEXT("RightCoatTail"), Cube.Object, FVector(-3,12,-41), FVector(.28f,.21f,.58f));
- Part(TEXT("Hair"), Cube.Object, FVector(-.5f,0,84), FVector(.21f,.235f,.08f));
- auto* Eye = Part(TEXT("EyeAugment"), Cube.Object, FVector(10.5f,-5,75), FVector(.025f,.055f,.03f));
+ Part(TEXT("LeftShoulder"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(-2,-24,39), FVector(.26f,.14f,.17f));
+ Part(TEXT("RightShoulder"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(-2,24,39), FVector(.26f,.14f,.17f));
+ Part(TEXT("RightCoatTail"), OriginalVisualMesh(EBGArtMesh::Tail, Cube.Object), FVector(-3,12,-41), FVector(.28f,.21f,.58f));
+ Part(TEXT("Hair"), OriginalVisualMesh(EBGArtMesh::Hair, Cube.Object), FVector(-.5f,0,84), FVector(.21f,.235f,.08f));
+ auto* Eye = Part(TEXT("EyeAugment"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(10.5f,-5,75), FVector(.025f,.055f,.03f));
  Eye->SetCastShadow(false);
- auto* LapelLeft = Part(TEXT("LeftLapel"), Cube.Object, FVector(17,-8,26), FVector(.035f,.12f,.34f));
- auto* LapelRight = Part(TEXT("RightLapel"), Cube.Object, FVector(17,8,26), FVector(.035f,.12f,.34f));
+ auto* LapelLeft = Part(TEXT("LeftLapel"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(17,-8,26), FVector(.035f,.12f,.34f));
+ auto* LapelRight = Part(TEXT("RightLapel"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector(17,8,26), FVector(.035f,.12f,.34f));
  LapelLeft->SetCastShadow(false); LapelRight->SetCastShadow(false);
- Part(TEXT("LeftBoot"), Cube.Object, FVector(8,-11,-82), FVector(.26f,.18f,.12f));
- Part(TEXT("RightBoot"), Cube.Object, FVector(8,11,-82), FVector(.26f,.18f,.12f));
- auto* Grip = Part(TEXT("WeaponGrip"), Cube.Object, FVector::ZeroVector, FVector(.095f,.075f,.19f));
+ Part(TEXT("LeftBoot"), OriginalVisualMesh(EBGArtMesh::Boot, Cube.Object), FVector(8,-11,-82), FVector(.26f,.18f,.12f));
+ Part(TEXT("RightBoot"), OriginalVisualMesh(EBGArtMesh::Boot, Cube.Object), FVector(8,11,-82), FVector(.26f,.18f,.12f));
+ auto* Grip = Part(TEXT("WeaponGrip"), OriginalVisualMesh(EBGArtMesh::Trim, Cube.Object), FVector::ZeroVector, FVector(.095f,.075f,.19f));
  Grip->SetupAttachment(WeaponMesh);
  Grip->SetAbsolute(false,false,true);
  Grip->SetRelativeLocation(FVector(-10,0,-100));
  Grip->SetCastShadow(false);
+ auto* LeftHand = Part(TEXT("LeftHand"), OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object), FVector::ZeroVector, FVector(.115f,.105f,.13f));
+ auto* RightHand = Part(TEXT("RightHand"), OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object), FVector::ZeroVector, FVector(.115f,.105f,.13f));
+ auto* LeftForearm = Part(TEXT("LeftForearm"),OriginalVisualMesh(EBGArtMesh::Sleeve,Cube.Object),FVector(0,-27,-7),FVector(.12f,.12f,.28f));
+ auto* RightForearm = Part(TEXT("RightForearm"),OriginalVisualMesh(EBGArtMesh::Sleeve,Cube.Object),FVector(0,27,-7),FVector(.12f,.12f,.28f));
+ LeftArm->SetRelativeScale3D(FVector(.14f,.14f,.28f)); RightArm->SetRelativeScale3D(FVector(.14f,.14f,.28f));
+ LeftArm->SetRelativeLocation(FVector(0,-27,21)); RightArm->SetRelativeLocation(FVector(0,27,21));
+ LeftHand->SetupAttachment(LeftForearm); RightHand->SetupAttachment(RightForearm);
+ LeftHand->SetAbsolute(false,false,true); RightHand->SetAbsolute(false,false,true);
+ LeftHand->SetRelativeLocation(FVector(0,0,-50)); RightHand->SetRelativeLocation(FVector(0,0,-50));
  Inventory.SetNum(8);
 }
 
@@ -146,14 +180,18 @@ float ABGUnit::InventoryWeight() const {
 }
 void ABGUnit::UpdateAppearance() {
  const FVector Poses[] = {FVector(0,0,12),FVector(-3,-12,-41),FVector(0,0,70),FVector(-2,0,50),
-  FVector(0,-11,-62),FVector(0,11,-62),FVector(0,-27,7),FVector(0,27,7),FVector(28,25,8),FVector(17,-13,23),
+  FVector(0,-11,-62),FVector(0,11,-62),FVector(0,-27,21),FVector(0,27,21),FVector(23,0,18),FVector(17,-13,23),
   FVector(0,0,-87),FVector(-2,-24,39),FVector(-2,24,39),FVector(-3,12,-41),FVector(-.5f,0,84),
-  FVector(10.5f,-5,75),FVector(17,-8,26),FVector(17,8,26),FVector(8,-11,-82),FVector(8,11,-82),FVector(-10,0,-100)};
+  FVector(10.5f,-5,75),FVector(17,-8,26),FVector(17,8,26),FVector(8,-11,-82),FVector(8,11,-82),FVector(-10,0,-100),
+  FVector(0,0,-50),FVector(0,0,-50),FVector(0,-27,-7),FVector(0,27,-7)};
  const bool LongCoat = UnitRole == EBGRole::Operative || UnitRole == EBGRole::Specialist;
+ LeftArm->SetRelativeScale3D(FVector(.14f,.14f,.28f)); RightArm->SetRelativeScale3D(FVector(.14f,.14f,.28f));
+ if (Parts.Num() >= 25) { Parts[23]->SetRelativeScale3D(FVector(.12f,.12f,.28f)); Parts[24]->SetRelativeScale3D(FVector(.12f,.12f,.28f)); }
  const FRotator Fall(0,0,85);
  for (int32 Index=0; Index<static_cast<int32>(UE_ARRAY_COUNT(Poses)) && Index<Parts.Num(); ++Index) {
   if (Parts[Index] == SelectionRing) continue;
-  if (Index == 20) {
+  if (Index >= 20 && Index <= 22) {
+   // Grip and hands inherit their owning weapon/arm transform, including a fallen pose.
    Parts[Index]->SetRelativeLocation(Poses[Index]); Parts[Index]->SetRelativeRotation(FRotator::ZeroRotator); continue;
   }
   FVector Position = Poses[Index];
@@ -171,7 +209,7 @@ void ABGUnit::UpdateAppearance() {
  const FLinearColor SkinColors[] = {FLinearColor(.53f,.36f,.25f),FLinearColor(.33f,.20f,.13f),
   FLinearColor(.65f,.48f,.35f),FLinearColor(.43f,.30f,.21f)};
  const int32 Palette = FMath::Abs(EntityId)%4;
- const FLinearColor Coat = UnitRole == EBGRole::Operative ? FLinearColor(.045f,.070f,.080f) :
+ const FLinearColor Coat = UnitRole == EBGRole::Operative ? FLinearColor(.13f,.17f,.18f) :
   UnitRole == EBGRole::Guard ? FLinearColor(.20f,.080f,.055f) :
   UnitRole == EBGRole::Specialist ? FLinearColor(.62f,.60f,.50f) : CivicColors[Palette];
  const FLinearColor Accent = UnitRole == EBGRole::Operative ? FLinearColor(.10f,.57f,.68f) :
@@ -179,26 +217,33 @@ void ABGUnit::UpdateAppearance() {
  for (UStaticMeshComponent* Part : Parts) ColorPart(Part, Coat);
  if (Parts.Num() >= 21) {
   ColorPart(Parts[2], SkinColors[Palette], .65f);
-  ColorPart(Parts[3], FLinearColor(.58f,.58f,.49f), .85f);
+  ColorPart(Parts[3], Coat*.75f, .85f);
+  if (UnitRole == EBGRole::Operative) {
+   ColorPart(Parts[1],Coat*.78f,.84f); ColorPart(Parts[13],Coat*.78f,.84f);
+   ColorPart(Parts[11],Coat*1.15f,.78f); ColorPart(Parts[12],Coat*1.15f,.78f);
+  }
   ColorPart(LeftLeg, FLinearColor(.06f,.065f,.07f));
   ColorPart(RightLeg, FLinearColor(.06f,.065f,.07f));
   ColorPart(Parts[9], Accent, .4f);
   ColorPart(Parts[14], FLinearColor(.027f,.021f,.018f), .85f);
   ColorPart(Parts[15], Accent*.7f, .28f);
   Parts[15]->SetVisibility(UnitRole == EBGRole::Operative || UnitRole == EBGRole::Guard);
-  ColorPart(Parts[16], Coat*1.6f, .74f); ColorPart(Parts[17], Coat*1.6f, .74f);
+  ColorPart(Parts[16], Coat*1.4f, .74f); ColorPart(Parts[17], Coat*1.4f, .74f);
   ColorPart(Parts[18], FLinearColor(.022f,.025f,.028f), .48f);
   ColorPart(Parts[19], FLinearColor(.022f,.025f,.028f), .48f);
   Parts[1]->SetRelativeScale3D(FVector(.28f,.21f,LongCoat ? .58f:.32f));
   Parts[13]->SetRelativeScale3D(FVector(.28f,.21f,LongCoat ? .58f:.32f));
   ColorPart(Parts[20], FLinearColor(.025f,.029f,.035f), .36f);
+  if (Parts.Num() >= 23) { ColorPart(Parts[21],SkinColors[Palette],.68f); ColorPart(Parts[22],SkinColors[Palette],.68f); }
  }
  ColorPart(WeaponMesh, FLinearColor(.035f,.043f,.050f), .32f);
- ColorPart(SelectionRing, FLinearColor(.075f,.58f,.72f), .7f);
+ ColorPart(SelectionRing, FLinearColor(.055f,.38f,.46f), .78f);
  const auto* Definition = WeaponDefinition();
  const bool WeaponVisible = Alive() && !IsSeated() && !bHolstered && Definition != nullptr;
  WeaponMesh->SetVisibility(WeaponVisible);
- WeaponMesh->SetRelativeScale3D(FVector(Definition && Definition->Id == TEXT("compact_automatic") ? .5f : .30f, .09f, .11f));
+ const bool LongGun = Definition && Definition->Id == TEXT("compact_automatic");
+ WeaponMesh->SetRelativeScale3D(FVector(LongGun ? .5f : .30f, .09f, .11f));
+ if (Alive()) WeaponMesh->SetRelativeLocation(FVector(38.f-(LongGun ? 25.f : 15.f),0,18));
  if (Parts.IsValidIndex(20)) Parts[20]->SetVisibility(WeaponVisible);
  SelectionRing->SetVisibility(bSelection && Alive() && !IsSeated());
  if (!Alive()) for (UStaticMeshComponent* Part : Parts) ColorPart(Part, Coat*.55f);
@@ -232,14 +277,42 @@ void ABGUnit::Tick(float DeltaSeconds) {
  const float Speed = GetVelocity().Size2D();
  GaitPhase += DeltaSeconds * FMath::Clamp(Speed / 32.f, 0.f, 11.f);
  const float Swing = FMath::Sin(GaitPhase) * FMath::Clamp(Speed / 8.f, 0.f, 27.f);
+ // Hip and shoulder pivots keep articulated limbs connected through the gait.
  LeftLeg->SetRelativeRotation(FRotator(Swing, 0, 0));
  RightLeg->SetRelativeRotation(FRotator(-Swing, 0, 0));
- const bool Aiming = !bHolstered && WeaponDefinition() != nullptr;
- LeftArm->SetRelativeLocation(FVector(0,-27,Aiming ? 30.f : 7.f));
- RightArm->SetRelativeLocation(FVector(0,27,Aiming ? 32.f : 7.f));
- LeftArm->SetRelativeRotation(FRotator(Aiming ? -50.f : -Swing * .6f, 0, 0));
- RightArm->SetRelativeRotation(FRotator(Aiming ? -65.f + Recoil * 22 : Swing * .6f, 0, 0));
- WeaponMesh->SetRelativeLocation(FVector(28 - Recoil * 8, 25, Aiming ? 20 : 8));
+ LeftLeg->SetRelativeLocation(FVector(0,-11,-29)+LeftLeg->GetRelativeRotation().RotateVector(FVector(0,0,-33)));
+ RightLeg->SetRelativeLocation(FVector(0,11,-29)+RightLeg->GetRelativeRotation().RotateVector(FVector(0,0,-33)));
+ const auto* VisualWeapon = WeaponDefinition();
+ const bool Aiming = !bHolstered && VisualWeapon != nullptr;
+ const bool LongGun = VisualWeapon && VisualWeapon->Id == TEXT("compact_automatic");
+ const float WeaponCenter = 38.f-(LongGun ? 25.f : 15.f)-Recoil*8;
+ // At rest the visible barrel matches the unchanged authoritative hitscan origin.
+ WeaponMesh->SetRelativeLocation(FVector(WeaponCenter,0,18));
+ auto PoseSegment = [](UStaticMeshComponent* Segment,const FVector& Start,const FVector& End,float Width) {
+  const FVector Delta = End-Start;
+  Segment->SetRelativeLocation((Start+End)*.5f);
+  Segment->SetRelativeRotation(FQuat::FindBetweenNormals(FVector(0,0,-1),Delta.GetSafeNormal()).Rotator());
+  Segment->SetRelativeScale3D(FVector(Width,Width,Delta.Size()/100.f));
+ };
+ if (Parts.Num() >= 25) {
+  const FVector LeftShoulder(0,-27,35), RightShoulder(0,27,35);
+  FVector LeftElbow,RightElbow,LeftWrist,RightWrist;
+  if (Aiming) {
+   LeftElbow=FVector(9,-27,11); RightElbow=FVector(5,27,10);
+   LeftWrist=FVector(29-Recoil*8,-1,13);
+   RightWrist=FVector(WeaponCenter-(LongGun ? 5.f : 3.f),1,10);
+  } else {
+   const FRotator LeftSwing(-Swing*.6f,0,0),RightSwing(Swing*.6f,0,0);
+   LeftElbow=LeftShoulder+LeftSwing.RotateVector(FVector(0,0,-28));
+   RightElbow=RightShoulder+RightSwing.RotateVector(FVector(0,0,-28));
+   LeftWrist=LeftElbow+LeftSwing.RotateVector(FVector(0,0,-28));
+   RightWrist=RightElbow+RightSwing.RotateVector(FVector(0,0,-28));
+  }
+  PoseSegment(LeftArm,LeftShoulder,LeftElbow,.14f);
+  PoseSegment(RightArm,RightShoulder,RightElbow,.14f);
+  PoseSegment(Parts[23],LeftElbow,LeftWrist,.12f);
+  PoseSegment(Parts[24],RightElbow,RightWrist,.12f);
+ }
  if (Parts.IsValidIndex(19)) {
   Parts[18]->SetRelativeLocation(LeftLeg->GetRelativeLocation()+LeftLeg->GetRelativeRotation().RotateVector(FVector(8,0,-20)));
   Parts[18]->SetRelativeRotation(LeftLeg->GetRelativeRotation());
@@ -578,18 +651,37 @@ ABGVehicle::ABGVehicle() {
   Component->SetCollisionEnabled(ECollisionEnabled::NoCollision); Component->SetCanEverAffectNavigation(false);
   return Component;
  };
- Part(TEXT("VanBody"),Cube.Object,FVector(0,0,0),FVector(4.1f,1.85f,.9f));
- Part(TEXT("Cabin"),Cube.Object,FVector(-25,0,72),FVector(2.9f,1.73f,.7f));
- Part(TEXT("Windshield"),Cube.Object,FVector(122,0,76),FVector(.08f,1.5f,.48f));
- Part(TEXT("RearWindow"),Cube.Object,FVector(-175,0,72),FVector(.05f,1.5f,.43f));
+ Part(TEXT("VanBody"),OriginalVisualMesh(EBGArtMesh::VanBody,Cube.Object),FVector(0,0,0),FVector(4.1f,1.85f,.9f));
+ Part(TEXT("Cabin"),OriginalVisualMesh(EBGArtMesh::VanCabin,Cube.Object),FVector(-25,0,72),FVector(2.9f,1.73f,.7f));
+ auto* Windshield=Part(TEXT("Windshield"),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),FVector(109,0,76),FVector(.08f,1.42f,.44f));
+ Windshield->SetRelativeRotation(FRotator(-24,0,0));
+ Part(TEXT("RearWindow"),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),FVector(-167,0,72),FVector(.05f,1.42f,.38f));
+ Part(TEXT("FrontBumper"),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),FVector(201,0,-22),FVector(.14f,1.73f,.16f));
+ Part(TEXT("RearBumper"),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),FVector(-202,0,-22),FVector(.14f,1.73f,.16f));
+ Part(TEXT("FrontGrille"),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),FVector(203,0,6),FVector(.04f,.79f,.23f));
+ for (int32 Side=-1; Side<=1; Side+=2) {
+  Part(*FString::Printf(TEXT("CabWindow%d"),Side),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),
+   FVector(74,Side*85.f,75),FVector(.63f,.04f,.36f));
+  Part(*FString::Printf(TEXT("DoorHandle%d"),Side),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),
+   FVector(5,Side*91.f,23),FVector(.21f,.055f,.07f));
+  Part(*FString::Printf(TEXT("CorporateStripe%d"),Side),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),
+   FVector(-75,Side*91.f,9),FVector(1.49f,.035f,.07f));
+  Part(*FString::Printf(TEXT("Headlamp%d"),Side),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),
+   FVector(201,Side*68.f,19),FVector(.05f,.30f,.15f));
+  Part(*FString::Printf(TEXT("Taillamp%d"),Side),OriginalVisualMesh(EBGArtMesh::Trim,Cube.Object),
+   FVector(-201,Side*68.f,15),FVector(.05f,.15f,.31f));
+ }
  for (int32 Index=0; Index<4; ++Index) {
   const FName Name(*FString::Printf(TEXT("Wheel%d"),Index));
   auto* Wheel=CreateDefaultSubobject<UStaticMeshComponent>(Name);
-  Wheel->SetupAttachment(Hull); Wheel->SetStaticMesh(Cylinder.Object);
+  Wheel->SetupAttachment(Hull); Wheel->SetStaticMesh(OriginalVisualMesh(EBGArtMesh::Tire,Cylinder.Object));
   if (UMaterialInterface* Surface = CorporateSurface()) Wheel->SetMaterial(0, Surface);
   Wheel->SetRelativeLocation(FVector(Index<2 ? 125:-125, Index%2 ? 95:-95,-43));
   Wheel->SetRelativeRotation(FRotator(0,0,90)); Wheel->SetRelativeScale3D(FVector(.65f,.65f,.23f));
   Wheel->SetCollisionEnabled(ECollisionEnabled::NoCollision); Wheel->SetCanEverAffectNavigation(false);
+  auto* Hub=Part(*FString::Printf(TEXT("MetalHub%d"),Index),Cylinder.Object,
+   FVector(Index<2 ? 125:-125,Index%2 ? 108:-108,-43),FVector(.36f,.36f,.024f));
+  Hub->SetRelativeRotation(FRotator(0,0,90));
  }
  Occupants.Init(0,6);
 }
@@ -677,8 +769,18 @@ void ABGVehicle::Tick(float DeltaSeconds) {
   TArray<UStaticMeshComponent*> Components; GetComponents(Components);
   for (UStaticMeshComponent* Part : Components) {
    const FString Name = Part->GetName();
-   ColorPart(Part, Name.Contains(TEXT("Window")) || Name.Contains(TEXT("Windshield")) ? FLinearColor(.035f,.075f,.09f) :
-    Name.Contains(TEXT("Wheel")) ? FLinearColor(.02f,.02f,.025f) : FLinearColor(.12f,.15f,.17f));
+   const bool Glass = Name.Contains(TEXT("Window")) || Name.Contains(TEXT("Windshield"));
+   const bool Metal = Name.Contains(TEXT("MetalHub")) || Name.Contains(TEXT("Handle")) || Name.Contains(TEXT("Bumper"));
+   const bool FrontLight = Name.Contains(TEXT("Headlamp")), RearLight = Name.Contains(TEXT("Taillamp"));
+   ColorPart(Part, Glass ? FLinearColor(.018f,.043f,.052f) :
+    Name.Contains(TEXT("Wheel")) || Name.Contains(TEXT("Grille")) ? FLinearColor(.018f,.02f,.023f) :
+    FrontLight ? FLinearColor(.74f,.70f,.51f) : RearLight ? FLinearColor(.48f,.055f,.025f) :
+    Name.Contains(TEXT("Stripe")) ? FLinearColor(.11f,.38f,.43f) :
+    Metal ? FLinearColor(.18f,.20f,.20f) : FLinearColor(.105f,.135f,.15f), Glass ? .18f : Metal ? .4f : .67f);
+   if (auto* Material=Cast<UMaterialInstanceDynamic>(Part->GetMaterial(0))) {
+    Material->SetScalarParameterValue(TEXT("Metalness"),Metal ? .65f : .05f);
+    Material->SetScalarParameterValue(TEXT("Emission"),FrontLight || RearLight ? .24f : 0.f);
+   }
   }
   Tags.Add(TEXT("BGVehicleColored"));
  }

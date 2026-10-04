@@ -1,0 +1,41 @@
+{
+  "package_archive": "07",
+  "uat_exit": 0,
+  "buildcookrun_seconds": 42.91,
+  "files_excluding_saved": 48,
+  "bytes_excluding_saved": 957441458,
+  "physical_client": [
+    1920,
+    1080
+  ],
+  "identities": [
+    {
+      "path": "BLACKGLASS/Binaries/Win64/Blackglass.exe",
+      "bytes": 337470464,
+      "sha256": "09233ab13773c5bfc8d1d7a3e05db4982e908ce6334cfb2c9727edce1ac26a14"
+    },
+    {
+      "path": "BLACKGLASS/Content/Paks/BLACKGLASS-Windows.pak",
+      "bytes": 10668474,
+      "sha256": "e06d835dbd1580b3cf9b7e52000622abd0e211b172dbb506fd01155cbf52bf5c"
+    },
+    {
+      "path": "BLACKGLASS/Content/Paks/BLACKGLASS-Windows.ucas",
+      "bytes": 124914832,
+      "sha256": "b19a524bd1ec7530c58b3d32e31e2c18af09c4b2c684e376e69f1e250744bd80"
+    },
+    {
+      "path": "BLACKGLASS/Content/Paks/BLACKGLASS-Windows.utoc",
+      "bytes": 125619,
+      "sha256": "493d5c28d653cd2021dc5715161b20cd36881c1ba56d596c38297526a4e9511c"
+    }
+  ],
+  "screenshot": {
+    "path": "Docs/Evidence/package07-district.png",
+    "sha256": "d26d1bc8ebfacde355fcedbf8601bef66abac550302e7278a6eb709300380f68",
+    "method": "Actual native packaged Unreal viewport; HighResShot1920x1080 with32render warmup frames, no image editing"
+  },
+  "ordinary_input_review": "Blocked by active Windows screensaver/foreground unavailable",
+  "current_performance_capture": "Not measured; Package05 results remain historical",
+  "scope": "Local Development Windows package; public source excludes executables, symbols and runtime logs/saves."
+}

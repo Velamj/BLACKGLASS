@@ -3,15 +3,17 @@ Run: UnrealEditor-Cmd <project> -run=pythonscript -script=<this file>
 Seeded tileable TGA source art and an owned material graph; no downloaded artwork.
 """
 import json
+import hashlib
 import math
 import random
 import struct
 from pathlib import Path
 import unreal
 
-ASSET = "/Game/Materials/M_BlackglassSurface"
+ASSET = "/Game/Materials/M_BGIndustrialSurface"
 OWNER_TAG = "BlackglassMaterialBuilder"
-OWNER_VERSION = "surface_v2_detail"
+OWNER_VERSION = "surface_v3_wear"
+PREVIOUS_VERSIONS = ("surface_v1", "surface_v2_detail", OWNER_VERSION)
 REPORT = Path(unreal.Paths.project_saved_dir()) / "Verification" / "material-generation.json"
 SOURCE = Path(unreal.Paths.project_dir()) / "SourceArt" / "Materials"
 report = {"asset": ASSET, "created": False, "validated": False, "errors": [], "textures": []}
@@ -65,9 +67,24 @@ def generate_texture(name, seed, asphalt):
             value = .5 + (broad[index] - .5) * .3 + (middle[index] - .5) * .25
             value += (fine[index] - .5) * .2 + (generator.random() - .5) * (.32 if asphalt else .15)
             if not asphalt:
+                # Formed concrete: restrained board joints, tie holes and runoff.
+                joint = min(x % 256, 255 - x % 256, y % 256, 255 - y % 256)
+                if joint < 2:
+                    value -= .13
+                dx, dy = (x % 256) - 64, (y % 256) - 60
+                radius = math.sqrt(dx * dx + dy * dy)
+                if radius < 4:
+                    value -= .22
+                elif radius < 7:
+                    value -= .07
+                if 62 < x % 256 < 69 and 63 < y % 256 < 138:
+                    value -= .045 * (138 - y % 256) / 75
                 crack = (145 + 22 * math.sin(y * math.tau / size) + 8 * math.sin(y * math.tau * 3 / size)) % size
                 if abs(x - crack) < 1.2 and (y // 43) % 5 != 0:
-                    value -= .19
+                    value -= .12
+            else:
+                # Aggregate and broad repaired patches, authored without photo sources.
+                value -= .06 if broad[index] < .32 else 0
             byte = max(0, min(255, round(value * 255)))
             pixels[index * 3:index * 3 + 3] = bytes((byte, byte, byte))
     SOURCE.mkdir(parents=True, exist_ok=True)
@@ -75,6 +92,25 @@ def generate_texture(name, seed, asphalt):
     header = struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, size, size, 24, 0x20)
     path.write_bytes(header + pixels)
     return path
+
+
+def generate_normal(source):
+    data = source.read_bytes()
+    size = 512
+    height = data[18::3]
+    pixels = bytearray(size * size * 3)
+    for y in range(size):
+        for x in range(size):
+            dx = (height[y * size + (x + 1) % size] - height[y * size + (x - 1) % size]) / 255
+            dy = (height[((y + 1) % size) * size + x] - height[((y - 1) % size) * size + x]) / 255
+            nx, ny, nz = -dx * 1.5, dy * 1.5, 1.0
+            length = math.sqrt(nx * nx + ny * ny + nz * nz)
+            rgb = tuple(round((component / length * .5 + .5) * 255) for component in (nx, ny, nz))
+            index = (y * size + x) * 3
+            pixels[index:index + 3] = bytes((rgb[2], rgb[1], rgb[0]))
+    destination = source.with_name(source.stem + "Normal" + ".tga")
+    destination.write_bytes(data[:18] + pixels)
+    return destination
 
 
 def portable_legacy_import_data(texture, source):
@@ -103,14 +139,20 @@ def validate_import_privacy(name, texture):
         "importer": "TextureFactory", "import_data_class": import_class, "private_paths_found": False})
 
 
-def import_texture(name, seed, asphalt):
-    path = generate_texture(name, seed, asphalt)
+def import_texture(name, seed, asphalt, normal_source=None):
+    path = generate_normal(normal_source) if normal_source else generate_texture(name, seed, asphalt)
     asset_path = "/Game/Textures/" + name
     if unreal.EditorAssetLibrary.does_asset_exist(asset_path):
         texture = unreal.load_asset(asset_path)
-        if unreal.EditorAssetLibrary.get_metadata_tag(texture, OWNER_TAG) not in ("texture_v1", OWNER_VERSION):
+        if unreal.EditorAssetLibrary.get_metadata_tag(texture, OWNER_TAG) not in ("texture_v1", "surface_v2_detail", OWNER_VERSION):
             raise RuntimeError("Texture exists without this builder's ownership tag")
-        portable_legacy_import_data(texture, path)
+        source_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+        if unreal.EditorAssetLibrary.get_metadata_tag(texture, "BlackglassSourceSHA256") != source_hash:
+            raise RuntimeError("Owned texture source changed; use a new asset version rather than replacing a rooted asset")
+        validate_import_privacy(name, texture)
+        report["textures"].append({"asset": asset_path, "source": "SourceArt/Materials/" + path.name,
+            "seed": seed, "size": [512, 512], "cached_owned_import": True})
+        return texture
     task = unreal.AssetImportTask()
     task.set_editor_property("factory", unreal.TextureFactory())
     task.set_editor_property("filename", str(path))
@@ -123,7 +165,11 @@ def import_texture(name, seed, asphalt):
     texture = unreal.load_asset(asset_path)
     if texture is None:
         raise RuntimeError("Texture import failed: " + asset_path)
-    unreal.EditorAssetLibrary.set_metadata_tag(texture, OWNER_TAG, "texture_v1")
+    if normal_source:
+        texture.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+        texture.set_editor_property("srgb", False)
+    unreal.EditorAssetLibrary.set_metadata_tag(texture, OWNER_TAG, OWNER_VERSION)
+    unreal.EditorAssetLibrary.set_metadata_tag(texture, "BlackglassSourceSHA256", hashlib.sha256(path.read_bytes()).hexdigest())
     if not unreal.EditorAssetLibrary.save_asset(asset_path, only_if_is_dirty=False):
         raise RuntimeError("Texture save failed")
     validate_import_privacy(name, texture)
@@ -146,22 +192,25 @@ def connect(source, target, pin, output=""):
         raise RuntimeError("Material expression connection failed: " + pin)
 
 
-def build_material(concrete):
+def build_material(concrete, normal):
     if unreal.EditorAssetLibrary.does_asset_exist(ASSET):
         material = unreal.load_asset(ASSET)
         version = unreal.EditorAssetLibrary.get_metadata_tag(material, OWNER_TAG)
-        if version not in ("surface_v1", OWNER_VERSION):
+        if version not in PREVIOUS_VERSIONS:
             raise RuntimeError("Material exists without this builder's ownership tag")
         if version == OWNER_VERSION:
+            LIB.set_material_usage(material, unreal.MaterialUsage.MATUSAGE_INSTANCED_STATIC_MESHES)
             compile_errors = list(LIB.recompile_material(material))
             if compile_errors:
                 raise RuntimeError("Existing owned material shader errors: " + "; ".join(compile_errors))
+            if not unreal.EditorAssetLibrary.save_asset(ASSET, only_if_is_dirty=False):
+                raise RuntimeError("Owned material usage save failed")
             return material
         LIB.delete_all_material_expressions(material)
     else:
         unreal.EditorAssetLibrary.make_directory("/Game/Materials")
         material = unreal.AssetToolsHelpers.get_asset_tools().create_asset(
-            "M_BlackglassSurface", "/Game/Materials", unreal.Material, unreal.MaterialFactoryNew()
+            "M_BGIndustrialSurface", "/Game/Materials", unreal.Material, unreal.MaterialFactoryNew()
         )
         if material is None:
             raise RuntimeError("MaterialFactoryNew failed")
@@ -178,8 +227,8 @@ def build_material(concrete):
     scaled_uv = expression(material, unreal.MaterialExpressionMultiply, -800, 450, {})
     sample = expression(material, unreal.MaterialExpressionTextureSampleParameter2D, -600, 400,
         {"parameter_name": "SurfaceDetail", "texture": concrete})
-    remap = expression(material, unreal.MaterialExpressionMultiply, -400, 400, {"const_b": .22})
-    bias = expression(material, unreal.MaterialExpressionAdd, -200, 200, {"const_b": .78})
+    remap = expression(material, unreal.MaterialExpressionMultiply, -400, 400, {"const_b": .46})
+    bias = expression(material, unreal.MaterialExpressionAdd, -200, 200, {"const_b": .58})
     blend = expression(material, unreal.MaterialExpressionLinearInterpolate, 0, 100, {"const_a": 1.0})
     tinted = expression(material, unreal.MaterialExpressionMultiply, 200, -100, {})
     connect(uv, scaled_uv, "A")
@@ -195,6 +244,31 @@ def build_material(concrete):
         raise RuntimeError("Color graph connection failed")
     if not LIB.connect_material_property(roughness, "", unreal.MaterialProperty.MP_ROUGHNESS):
         raise RuntimeError("Roughness graph connection failed")
+    metal = expression(material, unreal.MaterialExpressionScalarParameter, 0, 650,
+        {"parameter_name": "Metalness", "default_value": 0.0})
+    glow = expression(material, unreal.MaterialExpressionScalarParameter, 0, 820,
+        {"parameter_name": "Emission", "default_value": 0.0})
+    emitted = expression(material, unreal.MaterialExpressionMultiply, 200, 820, {})
+    connect(color, emitted, "A")
+    connect(glow, emitted, "B")
+    normal_sample = expression(material, unreal.MaterialExpressionTextureSampleParameter2D, -600, 750,
+        {"parameter_name": "SurfaceNormal", "texture": normal,
+         "sampler_type": unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL})
+    normal_flat = expression(material, unreal.MaterialExpressionConstant3Vector, -400, 980,
+        {"constant": unreal.LinearColor(0, 0, 1, 0)})
+    normal_strength = expression(material, unreal.MaterialExpressionMultiply, -200, 1050, {"const_b": .45})
+    normal_blend = expression(material, unreal.MaterialExpressionLinearInterpolate, 200, 1050, {})
+    connect(scaled_uv, normal_sample, "UVs")
+    connect(strength, normal_strength, "A")
+    connect(normal_flat, normal_blend, "A")
+    connect(normal_sample, normal_blend, "B", "RGB")
+    connect(normal_strength, normal_blend, "Alpha")
+    for node, prop in ((metal, unreal.MaterialProperty.MP_METALLIC),
+                       (emitted, unreal.MaterialProperty.MP_EMISSIVE_COLOR),
+                       (normal_blend, unreal.MaterialProperty.MP_NORMAL)):
+        if not LIB.connect_material_property(node, "", prop):
+            raise RuntimeError("Surface property connection failed")
+    LIB.set_material_usage(material, unreal.MaterialUsage.MATUSAGE_INSTANCED_STATIC_MESHES)
     compile_errors = list(LIB.recompile_material(material))
     if compile_errors:
         raise RuntimeError("Material shader errors: " + "; ".join(compile_errors))
@@ -207,21 +281,27 @@ def build_material(concrete):
 def validate(material):
     names = parameter_names(material)
     report["generated_parameters"] = names
-    if "Color" not in names["vectors"] or "SurfaceDetail" not in names["textures"]:
-        raise RuntimeError("Generated material is missing color/detail parameters")
-    if not {"Roughness", "DetailScale", "DetailStrength"}.issubset(set(names["scalars"])):
+    if "Color" not in names["vectors"] or not {"SurfaceDetail", "SurfaceNormal"}.issubset(set(names["textures"])):
+        raise RuntimeError("Generated material is missing color/detail/normal parameters")
+    if not {"Roughness", "DetailScale", "DetailStrength", "Metalness", "Emission"}.issubset(set(names["scalars"])):
         raise RuntimeError("Generated material is missing scalar parameters")
-    report["material_detail_remap"] = [.78, 1.0]
-    report["texture_samples"] = 1
+    if not LIB.has_material_usage(material, unreal.MaterialUsage.MATUSAGE_INSTANCED_STATIC_MESHES):
+        raise RuntimeError("Generated material lacks instanced static mesh support")
+    report["instanced_static_mesh_usage"] = True
+    report["material_detail_remap"] = [.58, 1.04]
+    report["texture_samples"] = 2
+    report["normal_strength"] = .45
     report["validated"] = True
     unreal.log("BLACKGLASS_ORIGINAL_MATERIAL_VERIFIED " + json.dumps(report, sort_keys=True))
 
 
 try:
     inspect_reference()
-    concrete = import_texture("T_BG_ConcreteDetail", 1337, False)
-    import_texture("T_BG_AsphaltDetail", 8701, True)
-    validate(build_material(concrete))
+    concrete = import_texture("T_BG_ConcreteWear", 1337, False)
+    import_texture("T_BG_AsphaltWear", 8701, True)
+    normal = import_texture("T_BG_ConcreteWearNormal", 1337, False, SOURCE / "T_BG_ConcreteWear.tga")
+    import_texture("T_BG_AsphaltWearNormal", 8701, True, SOURCE / "T_BG_AsphaltWear.tga")
+    validate(build_material(concrete, normal))
 except Exception as error:
     report["errors"].append(str(error))
     unreal.log_error("BLACKGLASS_MATERIAL_BUILD_FAILED " + str(error))

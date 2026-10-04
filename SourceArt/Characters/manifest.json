@@ -1,0 +1,282 @@
+{
+  "generator": "Scripts/Art/Generate-Character-Meshes.py",
+  "version": "tailored_lofts_v1",
+  "ownership": "Original geometry authored for BLACKGLASS; no third-party asset dependency.",
+  "status": "Interim articulated static mesh art. Skeletal rig, final textures and animation pending.",
+  "units": "centimeters; Z up; X forward; base parts nominally 100 cm",
+  "meshes": [
+    {
+      "asset": "/Game/Characters/SM_BG_TailoredTorso",
+      "source": "SourceArt/Characters/SM_BG_TailoredTorso.obj",
+      "vertices": 218,
+      "triangles": 432,
+      "sha256": "31d0d8ebe341e11ca48ef7fd517464ec159e615ea4ff354124c2dc8269205ebb",
+      "bounds": [
+        [
+          -46.0,
+          43.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_CoatTail",
+      "source": "SourceArt/Characters/SM_BG_CoatTail.obj",
+      "vertices": 170,
+      "triangles": 336,
+      "sha256": "696ed7cfa29e5e6697ba1f47dd66f717bc4776152648f8d121cf062231a3451a",
+      "bounds": [
+        [
+          -51.0,
+          45.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Head",
+      "source": "SourceArt/Characters/SM_BG_Head.obj",
+      "vertices": 1016,
+      "triangles": 2016,
+      "sha256": "6961c985989d8cb646d0f7dc1ab196b582496d02afe0a05b9e87351fdfedea24",
+      "bounds": [
+        [
+          -46.0,
+          58.0
+        ],
+        [
+          -54.0,
+          54.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Collar",
+      "source": "SourceArt/Characters/SM_BG_Collar.obj",
+      "vertices": 122,
+      "triangles": 240,
+      "sha256": "0f30a5110e6f28842abd521044466335a78a52f90f23915aff1ee693b3c26c18",
+      "bounds": [
+        [
+          -51.0,
+          45.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_TrouserLeg",
+      "source": "SourceArt/Characters/SM_BG_TrouserLeg.obj",
+      "vertices": 170,
+      "triangles": 336,
+      "sha256": "49d6236a0b393d0a89d538a7332661348a02a9c33430c73a3467ad3b36aba1ea",
+      "bounds": [
+        [
+          -49.0,
+          49.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Sleeve",
+      "source": "SourceArt/Characters/SM_BG_Sleeve.obj",
+      "vertices": 194,
+      "triangles": 384,
+      "sha256": "3ef9345768e3e0d38d9affaeef908ad3c18f5ac08af1fde445ef48d038bebbaa",
+      "bounds": [
+        [
+          -50.0,
+          46.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Hair",
+      "source": "SourceArt/Characters/SM_BG_Hair.obj",
+      "vertices": 122,
+      "triangles": 240,
+      "sha256": "dc0b4791efcaa34933eff5e7680b2f277e01d647c3d658a5b56aa6b68c3bbf66",
+      "bounds": [
+        [
+          -49.0,
+          47.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Boot",
+      "source": "SourceArt/Characters/SM_BG_Boot.obj",
+      "vertices": 170,
+      "triangles": 336,
+      "sha256": "7d86ee27c082d0246f51f89df05a36ec26f146f4d0c25d050f3a3541421c8ddc",
+      "bounds": [
+        [
+          -46.0,
+          52.0
+        ],
+        [
+          -48.0,
+          48.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_BevelTrim",
+      "source": "SourceArt/Characters/SM_BG_BevelTrim.obj",
+      "vertices": 98,
+      "triangles": 192,
+      "sha256": "0d1a9ee86a0fde21b957d447ed2f081570e9a98ac393130f16a5e30f8a174a40",
+      "bounds": [
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_VanBody",
+      "source": "SourceArt/Characters/SM_BG_VanBody.obj",
+      "vertices": 122,
+      "triangles": 240,
+      "sha256": "c213ee399a83c8653cecf0693d14b178e33578ef20730f0d8894faa783118ff9",
+      "bounds": [
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_VanCabin",
+      "source": "SourceArt/Characters/SM_BG_VanCabin.obj",
+      "vertices": 146,
+      "triangles": 288,
+      "sha256": "49abebd7b3465f1395b03a86b4b198fa67357f3317cd38a504207369c5eb0f06",
+      "bounds": [
+        [
+          -51.0,
+          50.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_Tire",
+      "source": "SourceArt/Characters/SM_BG_Tire.obj",
+      "vertices": 146,
+      "triangles": 288,
+      "sha256": "25648eac66815e8822addbe76520ec1090634cff0e6ae91960f3280797d54641",
+      "bounds": [
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    },
+    {
+      "asset": "/Game/Characters/SM_BG_SelectionAnnulus",
+      "source": "SourceArt/Characters/SM_BG_SelectionAnnulus.obj",
+      "vertices": 128,
+      "triangles": 256,
+      "sha256": "73146fff2fd0404090fe76269eccc9a38f9574e2931d0d0e2b17f34940281c61",
+      "bounds": [
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50.0,
+          50.0
+        ],
+        [
+          -50,
+          50
+        ]
+      ]
+    }
+  ]
+}
