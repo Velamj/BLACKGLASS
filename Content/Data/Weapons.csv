@@ -1,0 +1,3 @@
+id,label,range_m,damage,interval_s,hearing_m,weight,magazine,reserve,spread_deg,reload_s
+compact_sidearm,Ledger-12 Sidearm,12,18,0.55,16,2,12,96,1,1.6
+compact_automatic,Audit-30 Automatic,20,9,0.12,25,5,30,240,2.5,2

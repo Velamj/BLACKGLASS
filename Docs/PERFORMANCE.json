@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "status": "PASSED_BOUNDED_FOUNDATION_CAPTURE",
+  "passed": true,
+  "capture_data_valid": true,
+  "shutdown_verified": true,
+  "process_exit": 0,
+  "runner_exit": 0,
+  "capture_utc_date": "2026-10-03",
+  "package_archive": "05",
+  "engine_version": "5.8.3",
+  "build_configuration": "Development",
+  "scenario": "Unpaused DepotBlock with natural NPC simulation and no player orders; second startup capture after discarding the first.",
+  "hardware": {
+    "cpu": "Intel(R) Core(TM) Ultra 7 258V",
+    "physical_cores": 8,
+    "logical_processors": 8,
+    "memory_gib": 31.54,
+    "gpu": "Intel(R) Arc(TM) 140V GPU (16GB)",
+    "gpu_driver": "32.0.101.8132",
+    "os": "Microsoft Windows 11 Home",
+    "os_version": "10.0.26200",
+    "gpu_memory_note": "Integrated GPU using shared system memory; the adapter-reported 16GB label does not mean 16GB of dedicated VRAM."
+  },
+  "resolution": {
+    "width": 1920,
+    "height": 1080,
+    "mode": "windowed",
+    "source": "measured_physical_game_client"
+  },
+  "quality": {
+    "r.ScreenPercentage": {
+      "value": 100.0,
+      "source": "runtime_query"
+    },
+    "r.ShadowQuality": {
+      "value": 2.0,
+      "source": "runtime_query"
+    },
+    "r.AntiAliasingMethod": {
+      "value": 2.0,
+      "source": "runtime_query"
+    },
+    "r.VSync": {
+      "value": 0.0,
+      "source": "runtime_query"
+    },
+    "t.MaxFPS": {
+      "value": 0.0,
+      "source": "runtime_query"
+    },
+    "sg.ViewDistanceQuality": {
+      "value": 3.0,
+      "source": "runtime_query"
+    },
+    "sg.EffectsQuality": {
+      "value": 3.0,
+      "source": "runtime_query"
+    },
+    "sg.TextureQuality": {
+      "value": 3.0,
+      "source": "runtime_query"
+    },
+    "sg.PostProcessQuality": {
+      "value": 3.0,
+      "source": "runtime_query"
+    },
+    "r.DynamicGlobalIlluminationMethod": {
+      "value": 0.0,
+      "source": "runtime_query"
+    },
+    "r.ReflectionMethod": {
+      "value": 0.0,
+      "source": "runtime_query"
+    },
+    "r.Shadow.Virtual.Enable": {
+      "value": 0.0,
+      "source": "runtime_query"
+    }
+  },
+  "known_gameplay_actor_counts": {
+    "units": 17,
+    "vehicles": 1,
+    "doors": 2
+  },
+  "total_actor_count": 131,
+  "warmup_seconds": 116.906952,
+  "startup_persistent_level_actor_count": 131,
+  "capture": {
+    "frame_count": 9999,
+    "raw_frame_rows": 10000,
+    "discarded_frame_rows": 1,
+    "interior_invalid_frame_rows": 0,
+    "duration_seconds": 113.054326,
+    "timings": {
+      "frame_time_ms": {
+        "sample_count": 9999,
+        "mean": 11.306563,
+        "p50": 11.2302,
+        "p95": 12.1444,
+        "maximum": 59.7132
+      },
+      "game_thread_time_ms": {
+        "sample_count": 9999,
+        "mean": 2.405621,
+        "p50": 2.3314,
+        "p95": 2.88294,
+        "maximum": 41.3316
+      },
+      "render_thread_time_ms": {
+        "sample_count": 9999,
+        "mean": 11.300851,
+        "p50": 11.2269,
+        "p95": 12.09591,
+        "maximum": 59.6883
+      },
+      "gpu_time_ms": {
+        "sample_count": 9999,
+        "mean": 9.836859,
+        "p50": 9.7523,
+        "p95": 10.19912,
+        "maximum": 15.4103
+      }
+    },
+    "unavailable_timings": [],
+    "observed_actor_counts": {
+      "ActorCount/BGUnit": {
+        "sample_count": 9999,
+        "minimum": 17,
+        "maximum": 17
+      },
+      "ActorCount/TotalActorCount": {
+        "sample_count": 9999,
+        "minimum": 131,
+        "maximum": 131
+      }
+    },
+    "percentile_method": "Linear interpolation at (sample_count - 1) * percentile.",
+    "units": "milliseconds"
+  },
+  "mean_fps": 88.444205,
+  "method": {
+    "frames_per_capture": 10000,
+    "total_captures": 2,
+    "close_method": "supported_ExitAfterCsvProfiling_after_full_capture_drain",
+    "discarded_capture": 1,
+    "gpu_csv_stats_enabled": true,
+    "csv_processing": "synchronous_supported_csvNoProcessingThread",
+    "minimum_measured_duration_seconds": 30.0
+  },
+  "local_evidence": {
+    "summary": "Saved/Verification/foundation-final-certified-20261003T043222Z.summary.json",
+    "engine_log": "Saved/Verification/foundation-final-certified-20261003T043222Z.engine.log",
+    "raw_capture_metadata_published": false
+  },
+  "profiling_workaround": {
+    "flag": "-csvNoProcessingThread",
+    "source_verified": true,
+    "effect": "Only CSV processing is synchronous; normal gameplay and rendering remain threaded.",
+    "prior_failure": "The initial background-worker capture exited 777003. A local matching-PDB dump resolved allocator ClearTLS from FCsvProfilerProcessingThread::Run.",
+    "game_source_or_package_change": false
+  },
+  "bottleneck_attribution": "Unresolved: these global thread measurements include waits; no specific CPU or GPU bottleneck was established.",
+  "limitations": [
+    "A bounded idle foundation district, not a full mission, combat or final campaign stress test.",
+    "CSV data processing runs on the game thread to avoid the observed UE background-worker teardown crash; profiling overhead is included.",
+    "Profiling GPU scopes are enabled; global thread times include waits.",
+    "Zero or absent GPU timing is unavailable, not proof of zero GPU cost.",
+    "The GPU name is OS-reported; a memory amount in that label is not a measured dedicated VRAM capacity.",
+    "Startup actor queries count the persistent level, not visible or rendered actors.",
+    "Private engine logs and raw CSV metadata remain local and ignored.",
+    "The measured average is approximately 88.44 FPS in this bounded scene; combat and complete-mission performance still require measurement.",
+    "Maximum frame time was 59.7132 milliseconds; this result does not certify uninterrupted 60 FPS.",
+    "The first capture was discarded; its warmup duration includes initial engine loading stalls."
+  ]
+}
